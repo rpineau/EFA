@@ -25,16 +25,6 @@
 
 #define EFA_DEBUG 2
 
-#ifdef EFA_DEBUG
-#if defined(SB_WIN_BUILD)
-#define EFA_LOGFILENAME "C:\\EFALog.txt"
-#elif defined(SB_LINUX_BUILD)
-#define EFA_LOGFILENAME "/tmp/EFALog.txt"
-#elif defined(SB_MAC_BUILD)
-#define EFA_LOGFILENAME "/tmp/EFALog.txt"
-#endif
-#endif
-
 
 #define SERIAL_BUFFER_SIZE 256
 #define MAX_TIMEOUT 1000
