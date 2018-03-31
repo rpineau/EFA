@@ -128,17 +128,11 @@ void CEFAController::Disconnect()
 int CEFAController::haltFocuser()
 {
     int nErr = EFA_OK;
-    unsigned char szResp[SERIAL_BUFFER_SIZE];
-    unsigned char szTmpBuf[SERIAL_BUFFER_SIZE];
 
-	if(!m_bIsConnected)
+    if(!m_bIsConnected)
 		return ERR_COMMNOLINK;
 
-    // nErr = EFACommand("H#", szResp, SERIAL_BUFFER_SIZE);
-    if(nErr)
-        return nErr;
-    // parse output to update m_curPos
-    // m_nCurPos = atoi(szTmpBuf);
+    nErr = setPositiveMotorSlewRate(0); // stop
     m_nTargetPos = m_nCurPos;
 
     return nErr;
