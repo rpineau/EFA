@@ -1,8 +1,8 @@
 //
-//  nexdome.cpp
-//  NexDome X2 plugin
+//  efa.cpp
+//  PlaneWave EFA X2 plugin
 //
-//  Created by Rodolphe Pineau on 6/11/2016.
+//  Created by Rodolphe Pineau on 3/25/2018.
 
 
 #include "efa.h"

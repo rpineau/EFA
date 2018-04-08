@@ -1,9 +1,8 @@
 //
-//  EFA.h
-//  NexDome
+//  efa.h
+//  PlaneWave EFA X2 plugin
 //
-//  Created by Rodolphe Pineau on 2017/05/30.
-//  NexDome X2 plugin
+//  Created by Rodolphe Pineau on 3/25/2018.
 
 #ifndef __EFA__
 #define __EFA__
