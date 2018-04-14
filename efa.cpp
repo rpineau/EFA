@@ -878,7 +878,7 @@ int CEFAController::readResponse(unsigned char *pszRespBuffer, int nBufferLen)
     nLen = pszRespBuffer[1];
 
     // Read the rest of the message
-    nErr = m_pSerx->readFile(pszRespBuffer + 2, nLen, ulBytesRead, MAX_TIMEOUT);
+    nErr = m_pSerx->readFile(pszRespBuffer + 2, nLen + 1, ulBytesRead, MAX_TIMEOUT); // the +1 on nLen is to also read the checksum
     if(nErr || ulBytesRead != nLen) {
 #ifdef EFA_DEBUG
         ltime = time(NULL);
@@ -907,7 +907,7 @@ int CEFAController::readResponse(unsigned char *pszRespBuffer, int nBufferLen)
     return nErr;
 }
 
-signed char CEFAController::checksum(const unsigned char *cMessage, int nLen)
+unsigned char CEFAController::checksum(const unsigned char *cMessage, int nLen)
 {
     int nIdx;
     char cChecksum = 0;
@@ -915,7 +915,7 @@ signed char CEFAController::checksum(const unsigned char *cMessage, int nLen)
     for (nIdx = 0; nIdx < nLen && nIdx < SERIAL_BUFFER_SIZE; nIdx++) {
         cChecksum -= cMessage[nIdx];
     }
-    return cChecksum;
+    return (unsigned char)cChecksum;
 }
 
 void CEFAController::hexdump(const unsigned char* pszInputBuffer, unsigned char *pszOutputBuffer, int nInputBufferSize, int nOutpuBufferSize)

@@ -113,7 +113,7 @@ protected:
 
     int             EFACommand(const unsigned char *pszCmd, unsigned char *pszResult, int nResultMaxLen);
     int             readResponse(unsigned char *pszRespBuffer, int nBufferLen);
-    signed char     checksum(const unsigned char *cMessage, int nLen);
+    unsigned char     checksum(const unsigned char *cMessage, int nLen);
     void            hexdump(const unsigned char* pszInputBuffer, unsigned char *pszOutputBuffer, int nInputBufferSize, int nOutpuBufferSize);
     
     SerXInterface   *m_pSerx;
