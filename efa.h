@@ -40,6 +40,12 @@ enum MotorStatus    {IDLE = 0, MOVING};
 #define FAN     0x13
 #define TEMP    0x12
 
+#define NUM 1
+#define SRC 2
+#define RCV 3
+#define CMD 4
+
+
 // temps source
 #define PRIMARY 0
 #define AMBIANT 1
