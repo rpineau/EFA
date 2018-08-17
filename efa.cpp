@@ -91,6 +91,8 @@ int CEFAController::Connect(const char *pszPort)
     }
     m_bIsConnected = true;
 
+    // set RTS to false
+    // m_pSerx->???(false)
 
     m_pSleeper->sleep(2000);
 
@@ -757,11 +759,21 @@ int CEFAController::EFACommand(const unsigned char *pszCmd, unsigned char *pszRe
     fprintf(Logfile, "[%s] CEFAController::EFACommand Sending %s\n", timestamp, cHexMessage);
 	fflush(Logfile);
 #endif
+    // Wait for CTS
+    // while(m_pSerx->???()) { // check timeout } ...
+
+    // set RTS to true
+    // m_pSerx->???(true);
+
+    // write packet
     nErr = m_pSerx->writeFile((void *)pszCmd, pszCmd[NUM]+3, ulBytesWrite);
     m_pSerx->flushTx();
+    // set RTS to false
+    // m_pSerx->???(false)
 
     if(nErr)
         return nErr;
+
     int i =0;
     // The EFA always respond even if no data is expected
     while(true) {
