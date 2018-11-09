@@ -37,6 +37,7 @@ class TickCountInterface;
 #define DEF_PORT_NAME					"/dev/ttyUSB0"
 #endif
 
+#define DRIVER_MAX_STRING   256
 #define LOG_BUFFER_SIZE 256
 #define TMP_BUF_SIZE    1024
 
