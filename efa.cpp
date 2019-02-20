@@ -84,7 +84,7 @@ int CEFAController::Connect(const char *pszPort)
 #endif
 
     // 19200 8N1
-    nErr = m_pSerx->open(pszPort, 19200, SerXInterface::B_NOPARITY, "-DTR_CONTROL 1 -RTS_CONTROL 1");
+    nErr = m_pSerx->open(pszPort, 19200, SerXInterface::B_NOPARITY, "-DTR_CONTROL 1");
     if(nErr) {
         m_bIsConnected = false;
         return nErr;
@@ -92,7 +92,7 @@ int CEFAController::Connect(const char *pszPort)
     m_bIsConnected = true;
 
     // set RTS to false
-    // m_pSerx->???(false)
+    // m_pSerx->setRequestToSend(false);
 
     m_pSleeper->sleep(2000);
 
@@ -762,17 +762,18 @@ int CEFAController::EFACommand(const unsigned char *pszCmd, unsigned char *pszRe
     // Wait for CTS
     // while(m_pSerx->???()) { // check timeout } ...
 
-    // set RTS to true
-    // m_pSerx->???(true);
+    // set RTS to true -> we're taking the bus
+    // m_pSerx->setRequestToSend(true);
 
     // write packet
     nErr = m_pSerx->writeFile((void *)pszCmd, pszCmd[NUM]+3, ulBytesWrite);
     m_pSerx->flushTx();
-    // set RTS to false
-    // m_pSerx->???(false)
 
-    if(nErr)
+    if(nErr) {
+        // set RTS to false -> we're releasing the bus
+        // m_pSerx->setRequestToSend(false);
         return nErr;
+    }
 
     int i =0;
     // The EFA always respond even if no data is expected
@@ -794,9 +795,11 @@ int CEFAController::EFACommand(const unsigned char *pszCmd, unsigned char *pszRe
         fprintf(Logfile, "[%s] CEFAController::EFACommand response \"%s\"\n", timestamp, cHexMessage);
         fflush(Logfile);
 #endif
-        if(nErr)
+        if(nErr) {
+            // set RTS to false -> we're releasing the bus
+            // m_pSerx->setRequestToSend(false);
             return nErr;
-
+        }
         // if we  expect a response and get a packet but we're not the receicer .. try to read another response, 3 times max
         if(pszResult && szResp[RCV] != PC && i<3) {
             continue;
@@ -804,6 +807,9 @@ int CEFAController::EFACommand(const unsigned char *pszCmd, unsigned char *pszRe
         else
             break;
     }
+
+    // set RTS to false -> we're releasing the bus
+    // m_pSerx->setRequestToSend(false);
 
     if(pszResult) {
         memset(pszResult,0, nResultMaxLen);
