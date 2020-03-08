@@ -4,7 +4,7 @@ PACKAGE_NAME="efa_X2.pkg"
 BUNDLE_NAME="org.rti-zone.efaX2"
 
 if [ ! -z "$app_id_signature" ]; then
-    codesign -s "$app_id_signature" ../build/Release/libefa.dylib
+    codesign -f -s "$app_id_signature" --verbose ../build/Release/libefa.dylib
 fi
 
 mkdir -p ROOT/tmp/efa_X2/
