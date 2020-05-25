@@ -6,17 +6,6 @@
 
 
 #include "efa.h"
-#include <stdlib.h>
-#include <stdio.h>
-#include <ctype.h>
-#include <memory.h>
-#include <string.h>
-#ifdef SB_MAC_BUILD
-#include <unistd.h>
-#endif
-#ifdef SB_WIN_BUILD
-#include <time.h>
-#endif
 
 
 CEFAController::CEFAController()
@@ -93,9 +82,10 @@ int CEFAController::Connect(const char *pszPort)
 
     // set RTS to false
     // m_pSerx->setRequestToSend(false);
+    setRequestToSendSerx(m_pSerx, false);
+    // m_pSleeper->sleep(2000);
 
-    m_pSleeper->sleep(2000);
-
+    
 #if defined EFA_DEBUG && EFA_DEBUG >= 2
 	ltime = time(NULL);
 	timestamp = asctime(localtime(&ltime));
@@ -764,7 +754,7 @@ int CEFAController::EFACommand(const unsigned char *pszCmd, unsigned char *pszRe
 
     // set RTS to true -> we're taking the bus
     // m_pSerx->setRequestToSend(true);
-
+    setRequestToSendSerx(m_pSerx, true);
     // write packet
     nErr = m_pSerx->writeFile((void *)pszCmd, pszCmd[NUM]+3, ulBytesWrite);
     m_pSerx->flushTx();
@@ -772,6 +762,7 @@ int CEFAController::EFACommand(const unsigned char *pszCmd, unsigned char *pszRe
     if(nErr) {
         // set RTS to false -> we're releasing the bus
         // m_pSerx->setRequestToSend(false);
+        setRequestToSendSerx(m_pSerx, false);
         return nErr;
     }
 
@@ -798,6 +789,7 @@ int CEFAController::EFACommand(const unsigned char *pszCmd, unsigned char *pszRe
         if(nErr) {
             // set RTS to false -> we're releasing the bus
             // m_pSerx->setRequestToSend(false);
+            setRequestToSendSerx(m_pSerx, false);
             return nErr;
         }
         // if we  expect a response and get a packet but we're not the receicer .. try to read another response, 3 times max
@@ -810,7 +802,7 @@ int CEFAController::EFACommand(const unsigned char *pszCmd, unsigned char *pszRe
 
     // set RTS to false -> we're releasing the bus
     // m_pSerx->setRequestToSend(false);
-
+    setRequestToSendSerx(m_pSerx, false);
     if(pszResult) {
         memset(pszResult,0, nResultMaxLen);
         memcpy(pszResult, szResp, szResp[1]+3);
@@ -940,4 +932,33 @@ void CEFAController::hexdump(const unsigned char* pszInputBuffer, unsigned char 
         snprintf((char *)pszBuf,4,"%02X ", pszInputBuffer[nIdx]);
         pszBuf+=3;
     }
+}
+
+
+/*
+The setRequestToSendSerx() method provides a means to set the "request to send" pin on a serial port high and subsequently low using the SerXInterface provided to x2 drivers.
+
+The method returns immedately if the request succeeded or failed, returning 1 or 0 respectively.
+
+The serial port must be already be open.
+
+This method is for hardware (like the Planewave EFA) that uses the RTS/CTS line in a non conventional manner to request access the their shared internal serial bus (they use an internal I2C bus).
+
+The one who calls setRequestToSendSerx() is responsible for looping (and perhaps eventually timing out) while attempted to set the "request to send" high to gain access to the shared port.
+
+If follows, the caller is also responsbile for setting "request to send" low after sucessfully setting it high, otherwise other clients will not be able call in.
+
+Important note, TheSky build 12657 or later is required in order for setRequestToSendSerx() to work.
+*/
+bool CEFAController::setRequestToSendSerx(SerXInterface* pSerX, bool bSet)
+{
+    int nSpecialNumber = -5000;
+
+    if (NULL == pSerX)
+        return false;
+
+    if (!pSerX->isConnected())
+        return false;
+
+    return pSerX->waitForBytesRx(nSpecialNumber, bSet);//Work around to KISS, hi jack the existing method waitForBytesRx() to call the internal implemenation of setRequestToSend diffentiated by nSpecialNumber
 }

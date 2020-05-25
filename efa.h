@@ -8,11 +8,22 @@
 #define __EFA__
 #include <math.h>
 #include <string.h>
+#include <stdlib.h>
+#include <stdio.h>
+#include <ctype.h>
+#include <memory.h>
+#ifdef SB_MAC_BUILD
+#include <unistd.h>
+#endif
+#ifdef SB_WIN_BUILD
+#include <time.h>
+#endif
+
+
 #include <string>
 #include <vector>
 #include <sstream>
 #include <iostream>
-
 #include <exception>
 #include <typeinfo>
 #include <stdexcept>
@@ -119,8 +130,9 @@ protected:
 
     int             EFACommand(const unsigned char *pszCmd, unsigned char *pszResult, int nResultMaxLen);
     int             readResponse(unsigned char *pszRespBuffer, int nBufferLen);
-    unsigned char     checksum(const unsigned char *cMessage, int nLen);
+    unsigned char   checksum(const unsigned char *cMessage, int nLen);
     void            hexdump(const unsigned char* pszInputBuffer, unsigned char *pszOutputBuffer, int nInputBufferSize, int nOutpuBufferSize);
+    bool            setRequestToSendSerx(SerXInterface* pSerX, bool bSet);
     
     SerXInterface   *m_pSerx;
     LoggerInterface *m_pLogger;
