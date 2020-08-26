@@ -33,23 +33,24 @@
 #include "../../licensedinterfaces/loggerinterface.h"
 #include "../../licensedinterfaces/sleeperinterface.h"
 
-#define EFA_DEBUG 2
+#define PLUGIN_DEBUG 2
+#define DRIVER_VERSION      1.0
 
 
 #define SERIAL_BUFFER_SIZE 256
 #define MAX_TIMEOUT 1000
 #define LOG_BUFFER_SIZE 256
 
-enum EFA_Errors     {EFA_OK = 0, NOT_CONNECTED, EFA_CANT_CONNECT, EFA_BAD_CMD_RESPONSE, COMMAND_FAILED};
+enum EFA_Errors     {PLUGIN_OK = 0, NOT_CONNECTED, PLUGIN_CANT_CONNECT, PLUGIN_BAD_CMD_RESPONSE, COMMAND_FAILED};
 enum MotorDir       {NORMAL = 0 , REVERSE};
 enum MotorStatus    {IDLE = 0, MOVING};
 
-#define SOM     0x3B
-#define PC      0x20
-#define HC      0x0D
-#define FOC     0x12
-#define FAN     0x13
-#define TEMP    0x12
+#define SOM         0x3B
+#define PC          0x20
+#define HC          0x0D
+#define FOC_TEMP    0x12
+#define ROT_FAN     0x13
+#define DELTA_T     0x32
 
 #define NUM 1
 #define SRC 2
@@ -127,12 +128,19 @@ public:
 
 
 protected:
-
+    int             takeEFABus();
+    int             releaseEFABus();
+    
     int             EFACommand(const unsigned char *pszCmd, unsigned char *pszResult, int nResultMaxLen);
     int             readResponse(unsigned char *pszRespBuffer, int nBufferLen);
     unsigned char   checksum(const unsigned char *cMessage, int nLen);
     void            hexdump(const unsigned char* pszInputBuffer, unsigned char *pszOutputBuffer, int nInputBufferSize, int nOutpuBufferSize);
+    
+    
+    bool            isClearToSendSerx(SerXInterface* pSerX);
+    bool            isRequestToSendSerx(SerXInterface* pSerX);
     bool            setRequestToSendSerx(SerXInterface* pSerX, bool bSet);
+    
     
     SerXInterface   *m_pSerx;
     LoggerInterface *m_pLogger;
@@ -149,7 +157,7 @@ protected:
     bool            m_bPosLimitEnabled;
     bool            m_bMoving;
 
-#ifdef EFA_DEBUG
+#ifdef PLUGIN_DEBUG
     std::string m_sLogfilePath;
 	// timestamp for logs
 	char *timestamp;
