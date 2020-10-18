@@ -288,7 +288,7 @@ int CEFAController::getTemperature(double &dTemperature)
     if(nErr)
         return nErr;
 
-    rawTemp = szResp[5] + szResp[6]*256;
+    rawTemp = szResp[6] + szResp[5]*256;
     if(rawTemp & 0x8000)
         rawTemp = rawTemp - 0x10000;
     
