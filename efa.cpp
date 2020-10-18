@@ -271,11 +271,8 @@ int CEFAController::getTemperature(double &dTemperature)
     unsigned char szCmd[SERIAL_BUFFER_SIZE];
     unsigned char szResp[SERIAL_BUFFER_SIZE];
     int rawTemp;
-    bool tempIsNeg;
-    int intPart;
-    int fractionDigit;
 
-	if(!m_bIsConnected)
+    if(!m_bIsConnected)
 		return ERR_COMMNOLINK;
 
     memset(szCmd,0, SERIAL_BUFFER_SIZE);
@@ -291,18 +288,12 @@ int CEFAController::getTemperature(double &dTemperature)
     if(nErr)
         return nErr;
 
-    rawTemp = szResp[5]*256 + szResp[6];
-    tempIsNeg = false;
-    if(rawTemp > 32768){
-        tempIsNeg = true;
-        rawTemp = 65536 - rawTemp;
-    }
-    intPart = rawTemp / 16;
-    fractionDigit = (rawTemp - intPart) * 625 / 1000;
-    dTemperature = intPart + fractionDigit / 10;
-    if(tempIsNeg)
-        dTemperature = -dTemperature;
-
+    rawTemp = szResp[5] + szResp[6]*256;
+    if(rawTemp & 0x8000)
+        rawTemp = rawTemp - 0x10000;
+    
+    dTemperature = double(rawTemp)/10.6;
+    
     return nErr;
 }
 
@@ -768,7 +759,7 @@ int CEFAController::takeEFABus()
         ltime = time(NULL);
         timestamp = asctime(localtime(&ltime));
         timestamp[strlen(timestamp) - 1] = 0;
-        fprintf(Logfile, "[%s] [CEFAController::takeEFABus] error seting RTS to true\n", timestamp);
+        fprintf(Logfile, "[%s] [CEFAController::takeEFABus] error setting RTS to true\n", timestamp);
         fflush(Logfile);
 #endif
     }
@@ -793,7 +784,7 @@ int CEFAController::releaseEFABus()
         ltime = time(NULL);
         timestamp = asctime(localtime(&ltime));
         timestamp[strlen(timestamp) - 1] = 0;
-        fprintf(Logfile, "[%s] [CEFAController::releaseEFABus] error seting RTS to false\n", timestamp);
+        fprintf(Logfile, "[%s] [CEFAController::releaseEFABus] error setting RTS to false\n", timestamp);
         fflush(Logfile);
 #endif
     }
