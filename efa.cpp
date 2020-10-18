@@ -146,7 +146,7 @@ int CEFAController::gotoPosition(int nPos)
     ltime = time(NULL);
     timestamp = asctime(localtime(&ltime));
     timestamp[strlen(timestamp) - 1] = 0;
-    fprintf(Logfile, "[%s] CEFAController::gotoPosition goto position  : %d\n", timestamp, nPos);
+    fprintf(Logfile, "[%s] [CEFAController::gotoPosition] goto position  : %d\n", timestamp, nPos);
     fflush(Logfile);
 #endif
 
@@ -170,7 +170,7 @@ int CEFAController::moveRelativeToPosision(int nSteps)
     ltime = time(NULL);
     timestamp = asctime(localtime(&ltime));
     timestamp[strlen(timestamp) - 1] = 0;
-    fprintf(Logfile, "[%s] [CEFAController::gotoPosition] goto relative position  : %d\n", timestamp, nSteps);
+    fprintf(Logfile, "[%s] [CEFAController::moveRelativeToPosision] goto relative position  : %d\n", timestamp, nSteps);
     fflush(Logfile);
 #endif
 
@@ -184,18 +184,30 @@ int CEFAController::moveRelativeToPosision(int nSteps)
 int CEFAController::isGoToComplete(bool &bComplete)
 {
     int nErr = PLUGIN_OK;
-	
+    bool bMoving;
+    
+    bComplete = false;
+    
 	if(!m_bIsConnected)
 		return ERR_COMMNOLINK;
 
+    nErr = isMotorMoving(bMoving);
+    if(nErr)
+        return nErr;
+
+    if(bMoving)
+        return nErr;
+    
     nErr = getPosition(m_nCurPos);
     if(nErr)
         return nErr;
 
     if(m_nCurPos == m_nTargetPos)
         bComplete = true;
-    else
+    else {
+        gotoPosition(m_nTargetPos);
         bComplete = false;
+    }
     return nErr;
 }
 
