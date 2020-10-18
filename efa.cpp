@@ -80,6 +80,7 @@ int CEFAController::Connect(const char *pszPort)
         return nErr;
     }
     m_bIsConnected = true;
+    releaseEFABus();
     
 #if defined PLUGIN_DEBUG && PLUGIN_DEBUG >= 2
     ltime = time(NULL);
