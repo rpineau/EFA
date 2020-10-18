@@ -745,7 +745,7 @@ int CEFAController::takeEFABus()
         fprintf(Logfile, "[%s] [CEFAController::takeEFABus] bCTS  = %s\n", timestamp, bCTS?"True":"False");
         fflush(Logfile);
 #endif
-        if(!bCTS) // aka if CTS is true we can take the bus
+        if(!bCTS) // aka if CTS is false we can take the bus
             break;
         nTimeout++;
         if(nTimeout>100) {
@@ -753,6 +753,14 @@ int CEFAController::takeEFABus()
         }
         m_pSleeper->sleep(100);
     }
+#if defined PLUGIN_DEBUG && PLUGIN_DEBUG >= 2
+        ltime = time(NULL);
+        timestamp = asctime(localtime(&ltime));
+        timestamp[strlen(timestamp) - 1] = 0;
+        fprintf(Logfile, "[%s] [CEFAController::takeEFABus] bCTS  = %s\n", timestamp, bCTS?"True":"False");
+        fflush(Logfile);
+#endif
+
     // set RTS to true -> we're taking the bus
     nErr = setRequestToSendSerx(m_pSerx, true);
     if(nErr) {
@@ -825,6 +833,13 @@ int CEFAController::EFACommand(const unsigned char *pszCmd, unsigned char *pszRe
     }
 
     // read command echo
+#if defined PLUGIN_DEBUG && PLUGIN_DEBUG >= 2
+        ltime = time(NULL);
+        timestamp = asctime(localtime(&ltime));
+        timestamp[strlen(timestamp) - 1] = 0;
+        fprintf(Logfile, "[%s] [CEFAController::EFACommand] reading command echo.\n", timestamp);
+        fflush(Logfile);
+#endif
     nErr = readResponse(szResp, SERIAL_BUFFER_SIZE);
     releaseEFABus();
 
@@ -839,6 +854,7 @@ int CEFAController::EFACommand(const unsigned char *pszCmd, unsigned char *pszRe
         fprintf(Logfile, "[%s] [CEFAController::EFACommand] [%d] waiting for response.\n", timestamp, i++);
         fflush(Logfile);
 #endif
+        nErr = readResponse(szResp, SERIAL_BUFFER_SIZE);
 #if defined PLUGIN_DEBUG && PLUGIN_DEBUG >= 2
         ltime = time(NULL);
         timestamp = asctime(localtime(&ltime));
