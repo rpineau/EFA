@@ -203,7 +203,7 @@ int	X2Focuser::execModalSettingsDialog(void)
     if (NULL == ui)
         return ERR_POINTER;
 
-    if ((nErr = ui->loadUserInterface("EFA.ui", deviceType(), m_nPrivateMulitInstanceIndex)))
+    if ((nErr = ui->loadUserInterface("efa.ui", deviceType(), m_nPrivateMulitInstanceIndex)))
         return nErr;
 
     if (NULL == (dx = uiutil.X2DX()))
