@@ -97,6 +97,16 @@ int CEFAController::Connect(const char *pszPort)
         Disconnect();
         nErr = ERR_COMMNOLINK;
     }
+    
+    nErr = getCalibrationState(m_bCalibrated);
+#if defined PLUGIN_DEBUG && PLUGIN_DEBUG >= 2
+    ltime = time(NULL);
+    timestamp = asctime(localtime(&ltime));
+    timestamp[strlen(timestamp) - 1] = 0;
+    fprintf(Logfile, "[%s] [CEFAController::Connect] m_bCalibrated = %s\n", timestamp, m_bCalibrated?"Yes":"No");
+    fflush(Logfile);
+#endif
+
     return nErr;
 }
 

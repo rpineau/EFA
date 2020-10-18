@@ -166,6 +166,7 @@ protected:
     int             m_nPosLimitMax;
     bool            m_bPosLimitEnabled;
     bool            m_bMoving;
+    bool            m_bCalibrated;
     
 #ifdef PLUGIN_DEBUG
     std::string m_sLogfilePath;
