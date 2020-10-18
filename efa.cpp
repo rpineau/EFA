@@ -441,7 +441,7 @@ int CEFAController::setPosLimit(int nLimit)
     ltime = time(NULL);
     timestamp = asctime(localtime(&ltime));
     timestamp[strlen(timestamp) - 1] = 0;
-    fprintf(Logfile, "[%s] [CEFAController::syncMotorPosition] new limit : %d\n", timestamp, nLimit);
+    fprintf(Logfile, "[%s] [CEFAController::setPosLimit] new limit : %d\n", timestamp, nLimit);
     fflush(Logfile);
 #endif
 
@@ -740,7 +740,7 @@ int CEFAController::takeEFABus()
     // wait for CTS to be clear
     while(true) {
         bCTS = isClearToSendSerx(m_pSerx);
-#if defined PLUGIN_DEBUG && PLUGIN_DEBUG >= 2
+#if defined PLUGIN_DEBUG && PLUGIN_DEBUG >= 3
         ltime = time(NULL);
         timestamp = asctime(localtime(&ltime));
         timestamp[strlen(timestamp) - 1] = 0;
@@ -755,7 +755,7 @@ int CEFAController::takeEFABus()
         }
         m_pSleeper->sleep(100);
     }
-#if defined PLUGIN_DEBUG && PLUGIN_DEBUG >= 2
+#if defined PLUGIN_DEBUG && PLUGIN_DEBUG >= 3
         ltime = time(NULL);
         timestamp = asctime(localtime(&ltime));
         timestamp[strlen(timestamp) - 1] = 0;
@@ -817,7 +817,7 @@ int CEFAController::EFACommand(const unsigned char *pszCmd, unsigned char *pszRe
     }
 
     // read command echo
-#if defined PLUGIN_DEBUG && PLUGIN_DEBUG >= 2
+#if defined PLUGIN_DEBUG && PLUGIN_DEBUG >= 3
         ltime = time(NULL);
         timestamp = asctime(localtime(&ltime));
         timestamp[strlen(timestamp) - 1] = 0;
@@ -831,7 +831,7 @@ int CEFAController::EFACommand(const unsigned char *pszCmd, unsigned char *pszRe
     // The EFA always respond even if no data is expected
     i = 0;
     while(true) {
-#if defined PLUGIN_DEBUG && PLUGIN_DEBUG >= 2
+#if defined PLUGIN_DEBUG && PLUGIN_DEBUG >= 3
         ltime = time(NULL);
         timestamp = asctime(localtime(&ltime));
         timestamp[strlen(timestamp) - 1] = 0;
@@ -839,7 +839,7 @@ int CEFAController::EFACommand(const unsigned char *pszCmd, unsigned char *pszRe
         fflush(Logfile);
 #endif
         nErr = readResponse(szResp, SERIAL_BUFFER_SIZE);
-#if defined PLUGIN_DEBUG && PLUGIN_DEBUG >= 2
+#if defined PLUGIN_DEBUG && PLUGIN_DEBUG >= 3
         ltime = time(NULL);
         timestamp = asctime(localtime(&ltime));
         timestamp[strlen(timestamp) - 1] = 0;
@@ -904,7 +904,7 @@ int CEFAController::readResponse(unsigned char *pszRespBuffer, int nBufferLen)
 
     nLen = pszRespBuffer[1];
     if(!nLen) {
-#ifdef PLUGIN_DEBUG
+#if defined PLUGIN_DEBUG && PLUGIN_DEBUG >= 3
         ltime = time(NULL);
         timestamp = asctime(localtime(&ltime));
         timestamp[strlen(timestamp) - 1] = 0;
@@ -916,7 +916,7 @@ int CEFAController::readResponse(unsigned char *pszRespBuffer, int nBufferLen)
     // Read the rest of the message
     nErr = m_pSerx->readFile(pszRespBuffer + 2, nLen + 1, ulBytesRead, MAX_TIMEOUT); // the +1 on nLen is to also read the checksum
     if(nErr || (ulBytesRead != nLen+1)) {
-#ifdef PLUGIN_DEBUG
+#if defined PLUGIN_DEBUG && PLUGIN_DEBUG >= 3
         ltime = time(NULL);
         timestamp = asctime(localtime(&ltime));
         timestamp[strlen(timestamp) - 1] = 0;
@@ -932,7 +932,7 @@ int CEFAController::readResponse(unsigned char *pszRespBuffer, int nBufferLen)
 
     // verify checksum
     cChecksum = checksum(pszRespBuffer+1, nLen+1);
-#ifdef PLUGIN_DEBUG
+#if defined PLUGIN_DEBUG && PLUGIN_DEBUG >= 3
     ltime = time(NULL);
     timestamp = asctime(localtime(&ltime));
     timestamp[strlen(timestamp) - 1] = 0;
@@ -944,7 +944,7 @@ int CEFAController::readResponse(unsigned char *pszRespBuffer, int nBufferLen)
 #endif
 
     if (cChecksum  != *(pszRespBuffer+nLen+2) && *(pszRespBuffer+nLen+2) != 0x00) { // echoed packet have a checksum of 00 apparently.
-#ifdef PLUGIN_DEBUG
+#if defined PLUGIN_DEBUG && PLUGIN_DEBUG >= 3
         ltime = time(NULL);
         timestamp = asctime(localtime(&ltime));
         timestamp[strlen(timestamp) - 1] = 0;
@@ -954,7 +954,7 @@ int CEFAController::readResponse(unsigned char *pszRespBuffer, int nBufferLen)
 #endif
         nErr = ERR_CMDFAILED;
     }
-#if defined PLUGIN_DEBUG && PLUGIN_DEBUG >= 2
+#if defined PLUGIN_DEBUG && PLUGIN_DEBUG >= 3
     ltime = time(NULL);
     timestamp = asctime(localtime(&ltime));
     timestamp[strlen(timestamp) - 1] = 0;
