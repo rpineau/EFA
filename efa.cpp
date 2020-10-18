@@ -381,9 +381,41 @@ int CEFAController::syncMotorPosition(int nPos)
     return nErr;
 }
 
+int CEFAController::getPosLimitMin(int &nPosLimit)
+{
+    int nErr = PLUGIN_OK;
+    unsigned char szCmd[SERIAL_BUFFER_SIZE];
+    unsigned char szResp[SERIAL_BUFFER_SIZE];
 
+    if(!m_bIsConnected)
+        return ERR_COMMNOLINK;
 
-int CEFAController::getPosLimit(int &nPosLimit)
+    memset(szCmd,0, SERIAL_BUFFER_SIZE);
+    szCmd[0] = SOM;
+    szCmd[NUM] = 3;
+    szCmd[SRC] = PC;
+    szCmd[RCV] = FOC_TEMP;
+    szCmd[CMD] = MTR_SLEWLIMITGETMIN;
+    szCmd[5] = checksum(szCmd+1, szCmd[NUM]+1);
+
+    nErr = EFACommand(szCmd, szResp, SERIAL_BUFFER_SIZE);
+    if(nErr)
+        return nErr;
+
+    // convert response
+    m_nPosLimit = (szResp[5]<<16) + (szResp[6]<<8) + szResp[7];
+#if defined PLUGIN_DEBUG && PLUGIN_DEBUG >= 2
+    ltime = time(NULL);
+    timestamp = asctime(localtime(&ltime));
+    timestamp[strlen(timestamp) - 1] = 0;
+    fprintf(Logfile, "[%s] [CEFAController::getPosLimit] m_nPosLimit = %d\n", timestamp, m_nPosLimit);
+    fflush(Logfile);
+#endif
+    nPosLimit = m_nPosLimit;
+    return nErr;
+}
+
+int CEFAController::getPosLimitMax(int &nPosLimit)
 {
     int nErr = PLUGIN_OK;
     unsigned char szCmd[SERIAL_BUFFER_SIZE];
@@ -416,6 +448,7 @@ int CEFAController::getPosLimit(int &nPosLimit)
     nPosLimit = m_nPosLimit;
     return nErr;
 }
+
 
 int CEFAController::setPosLimit(int nLimit)
 {

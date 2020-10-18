@@ -191,7 +191,8 @@ int	X2Focuser::execModalSettingsDialog(void)
     X2GUIExchangeInterface*			dx = NULL;//Comes after ui is loaded
     bool bPressedOK = false;
     int nPosition = 0;
-    int nPosLimit = 0;
+    int nPosLimitMin = 0;
+    int nPosLimitMax = 0;
     int nApproachDir = 0;
     bool bFanOn;
     bool bStopDetect;
@@ -215,9 +216,14 @@ int	X2Focuser::execModalSettingsDialog(void)
         nErr = m_EFAController.getPosition(nPosition);
         if(nErr)
             return nErr;
-        nErr = m_EFAController.getPosLimit(nPosLimit);
+        nErr = m_EFAController.getPosLimitMin(nPosLimitMin);
         if(nErr)
             return nErr;
+
+        nErr = m_EFAController.getPosLimitMax(nPosLimitMax);
+        if(nErr)
+            return nErr;
+
         nErr = m_EFAController.getApproachDir(nApproachDir);
         if(nErr)
             return nErr;
@@ -241,7 +247,8 @@ int	X2Focuser::execModalSettingsDialog(void)
         dx->setPropertyInt("newPos", "value", nPosition);
         dx->setEnabled("posLimit", true);
         dx->setEnabled("pushButton_2", true);
-        dx->setPropertyInt("posLimit", "value", nPosLimit);
+        dx->setPropertyInt("posLimitMin", "value", nPosLimitMin);
+        dx->setPropertyInt("posLimitMax", "value", nPosLimitMax);
 
         dx->setEnabled("radioButtonAppPos", true);
         dx->setEnabled("radioButtonAppNeg", true);
@@ -379,17 +386,26 @@ int	X2Focuser::focPosition(int& nPosition)
 
 int	X2Focuser::focMinimumLimit(int& nMinLimit) 		
 {
-	nMinLimit = 0;
-    return SB_OK;
+    int nErr = SB_OK;
+
+    if(!m_bLinked)
+        return NOT_CONNECTED;
+
+    X2MutexLocker ml(GetMutex());
+    nErr = m_EFAController.getPosLimitMin(nMinLimit);
+    return nErr;
+
 }
 
-int	X2Focuser::focMaximumLimit(int& nPosLimit)			
+int	X2Focuser::focMaximumLimit(int& nMaxLimit)
 {
     int nErr = SB_OK;
-	X2MutexLocker ml(GetMutex());
-    m_EFAController.getPosLimit(nPosLimit);
 
-    nErr = m_EFAController.getPosLimit(nPosLimit);
+    if(!m_bLinked)
+        return NOT_CONNECTED;
+
+	X2MutexLocker ml(GetMutex());
+    nErr = m_EFAController.getPosLimitMax(nMaxLimit);
 
     return nErr;
 }

@@ -67,7 +67,11 @@ enum MotorStatus    {IDLE = 0, MOVING};
 #define MTR_GOTO_POS2               0x17
 #define MTR_OFFSET_CNT              0x04
 #define MTR_GOTO_OVER               0x13
+#define MTR_PTRACK                  0x06
+#define MTR_NTRACK                  0x07
+#define MTR_SLEWLIMITMIN            0x1A
 #define MTR_SLEWLIMITMAX            0x1B
+#define MTR_SLEWLIMITGETMIN         0x1C
 #define MTR_SLEWLIMITGETMAX         0x1D
 #define MTR_PMSLEW_RATE             0x24
 #define MTR_NMSLEW_RATE             0x25
@@ -112,7 +116,8 @@ public:
     int         getTemperature(double &dTemperature);
     int         getPosition(int &nPosition);
     int         syncMotorPosition(int nPos);
-    int         getPosLimit(int &nPosLimit);
+    int         getPosLimitMin(int &nPosLimit);
+    int         getPosLimitMax(int &nPosLimit);
     int         setPosLimit(int nLimit);
 
     int         setPositiveMotorSlewRate(int nRate);
