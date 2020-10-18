@@ -23,7 +23,8 @@ CEFAController::CEFAController()
     m_nPosLimitMin = 0;
     m_nPosLimitMax = 0;
     m_bMoving = false;
-
+    m_nNbGoto = 0;
+    
 
 #ifdef PLUGIN_DEBUG
 #if defined(SB_WIN_BUILD)
@@ -155,7 +156,8 @@ int CEFAController::gotoPosition(int nPos)
         return nErr;
 
     m_nTargetPos = nPos;
-
+    m_nNbGoto = 0;
+    
     return nErr;
 }
 
@@ -225,7 +227,7 @@ int CEFAController::isGoToComplete(bool &bComplete)
 
     if(m_nCurPos == m_nTargetPos)
         bComplete = true;
-    else {
+    else if (! m_nNbGoto){
 #if defined PLUGIN_DEBUG && PLUGIN_DEBUG >= 2
         ltime = time(NULL);
         timestamp = asctime(localtime(&ltime));
@@ -234,7 +236,11 @@ int CEFAController::isGoToComplete(bool &bComplete)
 #endif
         gotoPosition(m_nTargetPos);
         bComplete = false;
+        m_nNbGoto++;
+    } else {
+        bComplete = true;
     }
+    
     return nErr;
 }
 

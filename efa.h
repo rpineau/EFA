@@ -163,7 +163,8 @@ protected:
     int             m_nPosLimitMax;
     bool            m_bPosLimitEnabled;
     bool            m_bMoving;
-
+    int             m_nNbGoto;
+    
 #ifdef PLUGIN_DEBUG
     std::string m_sLogfilePath;
 	// timestamp for logs
