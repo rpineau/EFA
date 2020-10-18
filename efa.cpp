@@ -293,7 +293,7 @@ int CEFAController::getTemperature(double &dTemperature)
     if(rawTemp & 0x8000)
         rawTemp = rawTemp - 0x10000;
     
-    dTemperature = double(rawTemp)/10.6;
+    dTemperature = double(rawTemp)/16.0;
 
 #if defined PLUGIN_DEBUG && PLUGIN_DEBUG >= 2
     ltime = time(NULL);
@@ -765,15 +765,6 @@ int CEFAController::takeEFABus()
 
     // set RTS to true -> we're taking the bus
     nErr = setRequestToSendSerx(m_pSerx, true);
-    if(nErr) {
-#if defined PLUGIN_DEBUG && PLUGIN_DEBUG >= 2
-        ltime = time(NULL);
-        timestamp = asctime(localtime(&ltime));
-        timestamp[strlen(timestamp) - 1] = 0;
-        fprintf(Logfile, "[%s] [CEFAController::takeEFABus] error setting RTS to true\n", timestamp);
-        fflush(Logfile);
-#endif
-    }
     return nErr;
 }
 
@@ -790,15 +781,6 @@ int CEFAController::releaseEFABus()
 
     // set RTS to false -> we're releasing the bus
     nErr = setRequestToSendSerx(m_pSerx, false);
-    if(nErr) {
-#if defined PLUGIN_DEBUG && PLUGIN_DEBUG >= 2
-        ltime = time(NULL);
-        timestamp = asctime(localtime(&ltime));
-        timestamp[strlen(timestamp) - 1] = 0;
-        fprintf(Logfile, "[%s] [CEFAController::releaseEFABus] error setting RTS to false\n", timestamp);
-        fflush(Logfile);
-#endif
-    }
     return nErr;
 }
 
