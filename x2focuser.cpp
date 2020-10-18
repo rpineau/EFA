@@ -295,9 +295,10 @@ int	X2Focuser::execModalSettingsDialog(void)
     if (bPressedOK) {
         nErr = SB_OK;
         // get limit option
-        dx->propertyInt("posLimit", "value", nPosLimit);
-        printf("Setting pos limit to %d\n", nPosLimit);
-        m_EFAController.setPosLimit(nPosLimit);
+        dx->propertyInt("posLimitMin", "value", nPosLimitMin);
+        m_EFAController.setPosLimitMin(nPosLimitMin);
+        dx->propertyInt("posLimitMax", "value", nPosLimitMax);
+        m_EFAController.setPosLimitMax(nPosLimitMax);
     }
     return nErr;
 }
@@ -321,8 +322,18 @@ void X2Focuser::uiEvent(X2GUIExchangeInterface* uiex, const char* pszEvent)
 
     // new limit
     if (!strcmp(pszEvent, "on_pushButton_2_clicked")) {
-        uiex->propertyInt("posLimit", "value", nTmpVal);
-        nErr = m_EFAController.setPosLimit(nTmpVal);
+        uiex->propertyInt("posLimitMin", "value", nTmpVal);
+        nErr = m_EFAController.setPosLimitMin(nTmpVal);
+        if(nErr) {
+            snprintf(szErrorMessage, LOG_BUFFER_SIZE, "Error setting new limit : Error %d", nErr);
+            uiex->messageBox("Set New Limit", szErrorMessage);
+            return;
+        }
+    }
+
+    if (!strcmp(pszEvent, "on_pushButton_3_clicked")) {
+        uiex->propertyInt("posLimitMax", "value", nTmpVal);
+        nErr = m_EFAController.setPosLimitMax(nTmpVal);
         if(nErr) {
             snprintf(szErrorMessage, LOG_BUFFER_SIZE, "Error setting new limit : Error %d", nErr);
             uiex->messageBox("Set New Limit", szErrorMessage);

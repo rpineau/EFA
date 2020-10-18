@@ -118,7 +118,8 @@ public:
     int         syncMotorPosition(int nPos);
     int         getPosLimitMin(int &nPosLimit);
     int         getPosLimitMax(int &nPosLimit);
-    int         setPosLimit(int nLimit);
+    int         setPosLimitMin(int nLimit);
+    int         setPosLimitMax(int nLimit);
 
     int         setPositiveMotorSlewRate(int nRate);
     int         setNegativeMotorSlewRate(int nRate);
@@ -158,7 +159,8 @@ protected:
 
     int             m_nCurPos;
     int             m_nTargetPos;
-    int             m_nPosLimit;
+    int             m_nPosLimitMin;
+    int             m_nPosLimitMax;
     bool            m_bPosLimitEnabled;
     bool            m_bMoving;
 
