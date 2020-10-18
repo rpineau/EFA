@@ -848,7 +848,6 @@ int CEFAController::EFACommand(const unsigned char *pszCmd, unsigned char *pszRe
         fflush(Logfile);
 #endif
         if(nErr) {
-            releaseEFABus();
             return nErr;
         }
         // if we  expect a response and get a packet but we're not the receicer .. try to read another response, 3 times max
@@ -858,7 +857,6 @@ int CEFAController::EFACommand(const unsigned char *pszCmd, unsigned char *pszRe
         else
             break;
     }
-
 
     if(pszResult) {
         memset(pszResult,0, nResultMaxLen);
