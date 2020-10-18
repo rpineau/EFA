@@ -194,17 +194,44 @@ int CEFAController::isGoToComplete(bool &bComplete)
     nErr = isMotorMoving(bMoving);
     if(nErr)
         return nErr;
-
-    if(bMoving)
-        return nErr;
+#if defined PLUGIN_DEBUG && PLUGIN_DEBUG >= 2
+        ltime = time(NULL);
+        timestamp = asctime(localtime(&ltime));
+        timestamp[strlen(timestamp) - 1] = 0;
+        fprintf(Logfile, "[%s] [CEFAController::isGoToComplete] Motor is still moving : %s\n", timestamp, bMoving?"Yes":"No");
+#endif
     
-    nErr = getPosition(m_nCurPos);
-    if(nErr)
+    if(bMoving) {
         return nErr;
+    }
+    nErr = getPosition(m_nCurPos);
+    if(nErr) {
+#if defined PLUGIN_DEBUG && PLUGIN_DEBUG >= 2
+        ltime = time(NULL);
+        timestamp = asctime(localtime(&ltime));
+        timestamp[strlen(timestamp) - 1] = 0;
+        fprintf(Logfile, "[%s] [CEFAController::isGoToComplete] Error getting position : %d\n", timestamp, nErr);
+#endif
+        return nErr;
+    }
+
+#if defined PLUGIN_DEBUG && PLUGIN_DEBUG >= 2
+        ltime = time(NULL);
+        timestamp = asctime(localtime(&ltime));
+        timestamp[strlen(timestamp) - 1] = 0;
+        fprintf(Logfile, "[%s] [CEFAController::isGoToComplete] m_nCurPos : %d\n", timestamp, m_nCurPos);
+        fprintf(Logfile, "[%s] [CEFAController::isGoToComplete] m_nTargetPos : %d\n", timestamp, m_nTargetPos);
+#endif
 
     if(m_nCurPos == m_nTargetPos)
         bComplete = true;
     else {
+#if defined PLUGIN_DEBUG && PLUGIN_DEBUG >= 2
+        ltime = time(NULL);
+        timestamp = asctime(localtime(&ltime));
+        timestamp[strlen(timestamp) - 1] = 0;
+        fprintf(Logfile, "[%s] [CEFAController::isGoToComplete] doing second goto from %d to %d\n", timestamp, m_nCurPos, m_nTargetPos);
+#endif
         gotoPosition(m_nTargetPos);
         bComplete = false;
     }
