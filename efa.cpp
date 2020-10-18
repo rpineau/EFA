@@ -89,7 +89,7 @@ int CEFAController::Connect(const char *pszPort)
     fprintf(Logfile, "[%s] [CEFAController::Connect] Getting Firmware.\n", timestamp);
     fflush(Logfile);
 #endif
-
+    
     nErr = getFirmwareVersion(m_szFirmwareVersion, SERIAL_BUFFER_SIZE);
     if(nErr) {
         Disconnect();
@@ -745,10 +745,10 @@ int CEFAController::takeEFABus()
         fprintf(Logfile, "[%s] [CEFAController::takeEFABus] bCTS  = %s\n", timestamp, bCTS?"True":"False");
         fflush(Logfile);
 #endif
-        if(bCTS)
+        if(!bCTS) // aka if CTS is true we can take the bus
             break;
         nTimeout++;
-        if(nTimeout>10) {
+        if(nTimeout>100) {
             return ERR_CMDFAILED;
         }
         m_pSleeper->sleep(100);
@@ -799,7 +799,9 @@ int CEFAController::EFACommand(const unsigned char *pszCmd, unsigned char *pszRe
     unsigned char szResp[SERIAL_BUFFER_SIZE];
     unsigned long  ulBytesWrite;
     unsigned char cHexMessage[LOG_BUFFER_SIZE];
-	if(!m_bIsConnected)
+    int i;
+    
+    if(!m_bIsConnected)
 		return ERR_COMMNOLINK;
 
     nErr = takeEFABus();
@@ -822,11 +824,14 @@ int CEFAController::EFACommand(const unsigned char *pszCmd, unsigned char *pszRe
         return nErr;
     }
 
-    int i =0;
+    // read command echo
+    nErr = readResponse(szResp, SERIAL_BUFFER_SIZE);
+    releaseEFABus();
+
+    
     // The EFA always respond even if no data is expected
+    i = 0;
     while(true) {
-        if(i==1)
-            releaseEFABus();
 #if defined PLUGIN_DEBUG && PLUGIN_DEBUG >= 2
         ltime = time(NULL);
         timestamp = asctime(localtime(&ltime));
@@ -834,8 +839,6 @@ int CEFAController::EFACommand(const unsigned char *pszCmd, unsigned char *pszRe
         fprintf(Logfile, "[%s] [CEFAController::EFACommand] [%d] waiting for response.\n", timestamp, i++);
         fflush(Logfile);
 #endif
-        // read response
-        nErr = readResponse(szResp, SERIAL_BUFFER_SIZE);
 #if defined PLUGIN_DEBUG && PLUGIN_DEBUG >= 2
         ltime = time(NULL);
         timestamp = asctime(localtime(&ltime));
