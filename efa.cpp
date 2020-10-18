@@ -256,6 +256,7 @@ int CEFAController::isMotorMoving(bool &bMoving)
     if(!m_bIsConnected)
         return ERR_COMMNOLINK;
 
+    bMoving = false;
     memset(szCmd,0, SERIAL_BUFFER_SIZE);
     // Goto Position = 0x140000 = 1310720
     szCmd[0] = SOM;
