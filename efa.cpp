@@ -194,8 +194,15 @@ int CEFAController::isGoToComplete(bool &bComplete)
 		return ERR_COMMNOLINK;
 
     nErr = isMotorMoving(bMoving);
-    if(nErr)
+    if(nErr) {
+#if defined PLUGIN_DEBUG && PLUGIN_DEBUG >= 2
+        ltime = time(NULL);
+        timestamp = asctime(localtime(&ltime));
+        timestamp[strlen(timestamp) - 1] = 0;
+        fprintf(Logfile, "[%s] [CEFAController::isGoToComplete] Error checking if motor is moving : %d\n", timestamp, nErr);
+#endif
         return nErr;
+    }
 #if defined PLUGIN_DEBUG && PLUGIN_DEBUG >= 2
         ltime = time(NULL);
         timestamp = asctime(localtime(&ltime));
@@ -240,7 +247,15 @@ int CEFAController::isGoToComplete(bool &bComplete)
     } else {
         bComplete = true;
     }
-    
+
+#if defined PLUGIN_DEBUG && PLUGIN_DEBUG >= 2
+        ltime = time(NULL);
+        timestamp = asctime(localtime(&ltime));
+        timestamp[strlen(timestamp) - 1] = 0;
+        fprintf(Logfile, "[%s] [CEFAController::isGoToComplete] bComplete =  %s\n", timestamp, bComplete?"True":"False");
+        fprintf(Logfile, "[%s] [CEFAController::isGoToComplete] nErr =  %d\n", timestamp, nErr);
+#endif
+
     return nErr;
 }
 
