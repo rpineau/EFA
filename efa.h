@@ -123,9 +123,9 @@ public:
 
     int         setPositiveMotorSlewRate(int nRate);
     int         setNegativeMotorSlewRate(int nRate);
-    int         setTrackPositiveMotorRate(int nRate);
-    int         setTrackNegativeMotorRate(int nRate);
-
+    int         trackPositiveMotorRate(int nRate);
+    int         trackNegativeMotorRate(int nRate);
+    int         trackAtMotorRate(int nRate);
     int         setFan(bool bOn);
     int         getFan(bool &bOn);
     int         setCalibrationState(bool bCalbrated);

@@ -127,7 +127,7 @@ int CEFAController::haltFocuser()
 		return ERR_COMMNOLINK;
 
     nErr = setPositiveMotorSlewRate(0); // stop
-    nErr |= setTrackPositiveMotorRate(0); // to be sure
+    nErr |= trackPositiveMotorRate(0); // to be sure
 #if defined PLUGIN_DEBUG && PLUGIN_DEBUG >= 2
     ltime = time(NULL);
     timestamp = asctime(localtime(&ltime));
@@ -754,7 +754,7 @@ int CEFAController::setNegativeMotorSlewRate(int nRate)
     return nErr;
 }
 
-int CEFAController::setTrackPositiveMotorRate(int nRate)
+int CEFAController::trackPositiveMotorRate(int nRate)
 {
     int nErr = PLUGIN_OK;
     unsigned char szCmd[SERIAL_BUFFER_SIZE];
@@ -789,7 +789,7 @@ int CEFAController::setTrackPositiveMotorRate(int nRate)
     return nErr;
 }
 
-int CEFAController::setTrackNegativeMotorRate(int nRate)
+int CEFAController::trackNegativeMotorRate(int nRate)
 {
     int nErr = PLUGIN_OK;
     unsigned char szCmd[SERIAL_BUFFER_SIZE];
@@ -821,6 +821,18 @@ int CEFAController::setTrackNegativeMotorRate(int nRate)
     return nErr;
 }
 
+int CEFAController::trackAtMotorRate(int nRate)
+{
+    int nErr = PLUGIN_OK;
+
+    if(nRate < 0) {
+        trackNegativeMotorRate(abs(nRate));
+    }
+    else {
+        trackNegativeMotorRate(nRate);
+    }
+    return nErr;
+}
 
 int CEFAController::setFan(bool bOn)
 {
