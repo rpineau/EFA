@@ -522,6 +522,7 @@ int CEFAController::setPosLimitMax(int nLimit)
     m_nPosLimitMax = nLimit;
     return nErr;
 }
+
 int CEFAController::setPositiveMotorSlewRate(int nRate)
 {
     int nErr = PLUGIN_OK;

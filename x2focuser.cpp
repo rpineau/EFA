@@ -294,11 +294,6 @@ int	X2Focuser::execModalSettingsDialog(void)
     //Retreive values from the user interface
     if (bPressedOK) {
         nErr = SB_OK;
-        // get limit option
-        dx->propertyInt("posLimitMin", "value", nPosLimitMin);
-        m_EFAController.setPosLimitMin(nPosLimitMin);
-        dx->propertyInt("posLimitMax", "value", nPosLimitMax);
-        m_EFAController.setPosLimitMax(nPosLimitMax);
     }
     return nErr;
 }
