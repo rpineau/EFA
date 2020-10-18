@@ -807,6 +807,8 @@ int CEFAController::EFACommand(const unsigned char *pszCmd, unsigned char *pszRe
     int i =0;
     // The EFA always respond even if no data is expected
     while(true) {
+        if(i==1)
+            releaseEFABus();
 #if defined PLUGIN_DEBUG && PLUGIN_DEBUG >= 2
         ltime = time(NULL);
         timestamp = asctime(localtime(&ltime));
@@ -836,7 +838,6 @@ int CEFAController::EFACommand(const unsigned char *pszCmd, unsigned char *pszRe
             break;
     }
 
-    releaseEFABus();
 
     if(pszResult) {
         memset(pszResult,0, nResultMaxLen);
