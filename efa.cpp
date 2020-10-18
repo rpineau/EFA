@@ -152,12 +152,26 @@ int CEFAController::gotoPosition(int nPos)
 #endif
 
     nErr = EFACommand(szCmd, szResp, SERIAL_BUFFER_SIZE);
-    if(nErr)
+    if(nErr) {
+    #if defined PLUGIN_DEBUG && PLUGIN_DEBUG >= 2
+        ltime = time(NULL);
+        timestamp = asctime(localtime(&ltime));
+        timestamp[strlen(timestamp) - 1] = 0;
+        fprintf(Logfile, "[%s] [CEFAController::gotoPosition] ERROR nErr = %d \n", timestamp, nErr);
+        fflush(Logfile);
+    #endif
         return nErr;
-
+    }
     m_nTargetPos = nPos;
     m_nNbGoto = 0;
     
+#if defined PLUGIN_DEBUG && PLUGIN_DEBUG >= 2
+    ltime = time(NULL);
+    timestamp = asctime(localtime(&ltime));
+    timestamp[strlen(timestamp) - 1] = 0;
+    fprintf(Logfile, "[%s] [CEFAController::gotoPosition] nErr = %d \n", timestamp, nErr);
+    fflush(Logfile);
+#endif
     return nErr;
 }
 
@@ -199,7 +213,7 @@ int CEFAController::isGoToComplete(bool &bComplete)
         ltime = time(NULL);
         timestamp = asctime(localtime(&ltime));
         timestamp[strlen(timestamp) - 1] = 0;
-        fprintf(Logfile, "[%s] [CEFAController::isGoToComplete] Error checking if motor is moving : %d\n", timestamp, nErr);
+        fprintf(Logfile, "[%s] [CEFAController::isGoToComplete] ERROR checking if motor is moving : %d\n", timestamp, nErr);
 #endif
         return nErr;
     }
@@ -213,47 +227,15 @@ int CEFAController::isGoToComplete(bool &bComplete)
     if(bMoving) {
         return nErr;
     }
-    nErr = getPosition(m_nCurPos);
-    if(nErr) {
-#if defined PLUGIN_DEBUG && PLUGIN_DEBUG >= 2
-        ltime = time(NULL);
-        timestamp = asctime(localtime(&ltime));
-        timestamp[strlen(timestamp) - 1] = 0;
-        fprintf(Logfile, "[%s] [CEFAController::isGoToComplete] Error getting position : %d\n", timestamp, nErr);
-#endif
-        return nErr;
-    }
 
-#if defined PLUGIN_DEBUG && PLUGIN_DEBUG >= 2
-        ltime = time(NULL);
-        timestamp = asctime(localtime(&ltime));
-        timestamp[strlen(timestamp) - 1] = 0;
-        fprintf(Logfile, "[%s] [CEFAController::isGoToComplete] m_nCurPos : %d\n", timestamp, m_nCurPos);
-        fprintf(Logfile, "[%s] [CEFAController::isGoToComplete] m_nTargetPos : %d\n", timestamp, m_nTargetPos);
-#endif
-
-    if(m_nCurPos == m_nTargetPos)
-        bComplete = true;
-    else if (! m_nNbGoto){
-#if defined PLUGIN_DEBUG && PLUGIN_DEBUG >= 2
-        ltime = time(NULL);
-        timestamp = asctime(localtime(&ltime));
-        timestamp[strlen(timestamp) - 1] = 0;
-        fprintf(Logfile, "[%s] [CEFAController::isGoToComplete] doing second goto from %d to %d\n", timestamp, m_nCurPos, m_nTargetPos);
-#endif
-        gotoPosition(m_nTargetPos);
-        bComplete = false;
-        m_nNbGoto++;
-    } else {
-        bComplete = true;
-    }
+    bComplete = true;
 
 #if defined PLUGIN_DEBUG && PLUGIN_DEBUG >= 2
         ltime = time(NULL);
         timestamp = asctime(localtime(&ltime));
         timestamp[strlen(timestamp) - 1] = 0;
         fprintf(Logfile, "[%s] [CEFAController::isGoToComplete] bComplete =  %s\n", timestamp, bComplete?"True":"False");
-        fprintf(Logfile, "[%s] [CEFAController::isGoToComplete] nErr =  %d\n", timestamp, nErr);
+        fprintf(Logfile, "[%s] [CEFAController::isGoToComplete] nErr = %d\n", timestamp, nErr);
 #endif
 
     return nErr;
@@ -278,8 +260,15 @@ int CEFAController::isMotorMoving(bool &bMoving)
     szCmd[5] = checksum(szCmd+1, szCmd[NUM]+1);
 
     nErr = EFACommand(szCmd, szResp, SERIAL_BUFFER_SIZE);
-    if(nErr)
+    if(nErr) {
+#if defined PLUGIN_DEBUG && PLUGIN_DEBUG >= 2
+        ltime = time(NULL);
+        timestamp = asctime(localtime(&ltime));
+        timestamp[strlen(timestamp) - 1] = 0;
+        fprintf(Logfile, "[%s] [CEFAController::isMotorMoving] ERROR nErr = %d\n", timestamp, nErr);
+#endif
         return nErr;
+    }
     if(szResp[5] == 0xFF) // FF = goto is over.
         m_bMoving = false;
     else
@@ -287,6 +276,12 @@ int CEFAController::isMotorMoving(bool &bMoving)
 
     bMoving = m_bMoving;
 
+#if defined PLUGIN_DEBUG && PLUGIN_DEBUG >= 2
+        ltime = time(NULL);
+        timestamp = asctime(localtime(&ltime));
+        timestamp[strlen(timestamp) - 1] = 0;
+        fprintf(Logfile, "[%s] [CEFAController::isMotorMoving] nErr = %d\n", timestamp, nErr);
+#endif
     return nErr;
 }
 
@@ -311,9 +306,15 @@ int CEFAController::getFirmwareVersion(char *pszVersion, int nStrMaxLen)
     szCmd[5] = checksum(szCmd+1, szCmd[NUM]+1);
 
     nErr = EFACommand(szCmd, szResp, SERIAL_BUFFER_SIZE);
-    if(nErr)
+    if(nErr) {
+#if defined PLUGIN_DEBUG && PLUGIN_DEBUG >= 2
+        ltime = time(NULL);
+        timestamp = asctime(localtime(&ltime));
+        timestamp[strlen(timestamp) - 1] = 0;
+        fprintf(Logfile, "[%s] [CEFAController::getFirmwareVersion] ERROR nErr = %d\n", timestamp, nErr);
+#endif
         return nErr;
-
+    }
 #if defined PLUGIN_DEBUG && PLUGIN_DEBUG >= 2
     ltime = time(NULL);
     timestamp = asctime(localtime(&ltime));
@@ -324,6 +325,12 @@ int CEFAController::getFirmwareVersion(char *pszVersion, int nStrMaxLen)
 
     snprintf(pszVersion, nStrMaxLen, "%d.%d", szResp[5] , szResp[6]);
 
+#if defined PLUGIN_DEBUG && PLUGIN_DEBUG >= 2
+        ltime = time(NULL);
+        timestamp = asctime(localtime(&ltime));
+        timestamp[strlen(timestamp) - 1] = 0;
+        fprintf(Logfile, "[%s] [CEFAController::getFirmwareVersion] nErr = %d\n", timestamp, nErr);
+#endif
     return nErr;
 }
 
@@ -347,9 +354,15 @@ int CEFAController::getTemperature(double &dTemperature)
     szCmd[6] = checksum(szCmd+1, szCmd[NUM]+1);
 
     nErr = EFACommand(szCmd, szResp, SERIAL_BUFFER_SIZE);
-    if(nErr)
+    if(nErr) {
+#if defined PLUGIN_DEBUG && PLUGIN_DEBUG >= 2
+        ltime = time(NULL);
+        timestamp = asctime(localtime(&ltime));
+        timestamp[strlen(timestamp) - 1] = 0;
+        fprintf(Logfile, "[%s] [CEFAController::getTemperature] ERROR nErr = %d\n", timestamp, nErr);
+#endif
         return nErr;
-
+    }
     rawTemp = szResp[5] + szResp[6]*256;
     if(rawTemp & 0x8000)
         rawTemp = rawTemp - 0x10000;
@@ -366,6 +379,12 @@ int CEFAController::getTemperature(double &dTemperature)
     fflush(Logfile);
 #endif
 
+#if defined PLUGIN_DEBUG && PLUGIN_DEBUG >= 2
+        ltime = time(NULL);
+        timestamp = asctime(localtime(&ltime));
+        timestamp[strlen(timestamp) - 1] = 0;
+        fprintf(Logfile, "[%s] [CEFAController::getTemperature] nErr = %d\n", timestamp, nErr);
+#endif
     return nErr;
 }
 
@@ -387,9 +406,15 @@ int CEFAController::getPosition(int &nPosition)
     szCmd[5] = checksum(szCmd+1, szCmd[NUM]+1);
 
     nErr = EFACommand(szCmd, szResp, SERIAL_BUFFER_SIZE);
-    if(nErr)
+    if(nErr) {
+#if defined PLUGIN_DEBUG && PLUGIN_DEBUG >= 2
+        ltime = time(NULL);
+        timestamp = asctime(localtime(&ltime));
+        timestamp[strlen(timestamp) - 1] = 0;
+        fprintf(Logfile, "[%s] [CEFAController::getPosition] ERROR nErr = %d\n", timestamp, nErr);
+#endif
         return nErr;
-
+    }
     // convert response
     nPosition = (szResp[5]<<16) + (szResp[6]<<8) + szResp[7];
 #if defined PLUGIN_DEBUG && PLUGIN_DEBUG >= 2
@@ -402,6 +427,12 @@ int CEFAController::getPosition(int &nPosition)
 
     m_nCurPos = nPosition;
 
+#if defined PLUGIN_DEBUG && PLUGIN_DEBUG >= 2
+        ltime = time(NULL);
+        timestamp = asctime(localtime(&ltime));
+        timestamp[strlen(timestamp) - 1] = 0;
+        fprintf(Logfile, "[%s] [CEFAController::getPosition] nErr = %d\n", timestamp, nErr);
+#endif
     return nErr;
 }
 
@@ -435,10 +466,22 @@ int CEFAController::syncMotorPosition(int nPos)
 #endif
 
     nErr = EFACommand(szCmd, szResp, SERIAL_BUFFER_SIZE);
-    if(nErr)
+    if(nErr) {
+#if defined PLUGIN_DEBUG && PLUGIN_DEBUG >= 2
+        ltime = time(NULL);
+        timestamp = asctime(localtime(&ltime));
+        timestamp[strlen(timestamp) - 1] = 0;
+        fprintf(Logfile, "[%s] [CEFAController::syncMotorPosition] ERROR nErr = %d\n", timestamp, nErr);
+#endif
         return nErr;
-
+    }
     m_nCurPos = nPos;
+#if defined PLUGIN_DEBUG && PLUGIN_DEBUG >= 2
+        ltime = time(NULL);
+        timestamp = asctime(localtime(&ltime));
+        timestamp[strlen(timestamp) - 1] = 0;
+        fprintf(Logfile, "[%s] [CEFAController::syncMotorPosition] nErr = %d\n", timestamp, nErr);
+#endif
     return nErr;
 }
 
@@ -460,9 +503,15 @@ int CEFAController::getPosLimitMin(int &nPosLimit)
     szCmd[5] = checksum(szCmd+1, szCmd[NUM]+1);
 
     nErr = EFACommand(szCmd, szResp, SERIAL_BUFFER_SIZE);
-    if(nErr)
+    if(nErr) {
+#if defined PLUGIN_DEBUG && PLUGIN_DEBUG >= 2
+        ltime = time(NULL);
+        timestamp = asctime(localtime(&ltime));
+        timestamp[strlen(timestamp) - 1] = 0;
+        fprintf(Logfile, "[%s] [CEFAController::getPosLimitMin] ERROR nErr = %d\n", timestamp, nErr);
+#endif
         return nErr;
-
+    }
     // convert response
     m_nPosLimitMin = (szResp[5]<<16) + (szResp[6]<<8) + szResp[7];
 #if defined PLUGIN_DEBUG && PLUGIN_DEBUG >= 2
@@ -473,6 +522,12 @@ int CEFAController::getPosLimitMin(int &nPosLimit)
     fflush(Logfile);
 #endif
     nPosLimit = m_nPosLimitMin;
+#if defined PLUGIN_DEBUG && PLUGIN_DEBUG >= 2
+        ltime = time(NULL);
+        timestamp = asctime(localtime(&ltime));
+        timestamp[strlen(timestamp) - 1] = 0;
+        fprintf(Logfile, "[%s] [CEFAController::getPosLimitMin] nErr = %d\n", timestamp, nErr);
+#endif
     return nErr;
 }
 
@@ -494,9 +549,15 @@ int CEFAController::getPosLimitMax(int &nPosLimit)
     szCmd[5] = checksum(szCmd+1, szCmd[NUM]+1);
 
     nErr = EFACommand(szCmd, szResp, SERIAL_BUFFER_SIZE);
-    if(nErr)
+    if(nErr) {
+#if defined PLUGIN_DEBUG && PLUGIN_DEBUG >= 2
+        ltime = time(NULL);
+        timestamp = asctime(localtime(&ltime));
+        timestamp[strlen(timestamp) - 1] = 0;
+        fprintf(Logfile, "[%s] [CEFAController::getPosLimitMax] ERROR nErr = %d\n", timestamp, nErr);
+#endif
         return nErr;
-
+    }
     // convert response
     m_nPosLimitMax = (szResp[5]<<16) + (szResp[6]<<8) + szResp[7];
 #if defined PLUGIN_DEBUG && PLUGIN_DEBUG >= 2
@@ -507,6 +568,12 @@ int CEFAController::getPosLimitMax(int &nPosLimit)
     fflush(Logfile);
 #endif
     nPosLimit = m_nPosLimitMax;
+#if defined PLUGIN_DEBUG && PLUGIN_DEBUG >= 2
+        ltime = time(NULL);
+        timestamp = asctime(localtime(&ltime));
+        timestamp[strlen(timestamp) - 1] = 0;
+        fprintf(Logfile, "[%s] [CEFAController::getPosLimitMax] nErr = %d\n", timestamp, nErr);
+#endif
     return nErr;
 }
 
@@ -540,10 +607,22 @@ int CEFAController::setPosLimitMin(int nLimit)
 #endif
 
     nErr = EFACommand(szCmd, szResp, SERIAL_BUFFER_SIZE);
-    if(nErr)
+    if(nErr) {
+#if defined PLUGIN_DEBUG && PLUGIN_DEBUG >= 2
+        ltime = time(NULL);
+        timestamp = asctime(localtime(&ltime));
+        timestamp[strlen(timestamp) - 1] = 0;
+        fprintf(Logfile, "[%s] [CEFAController::setPosLimitMin] ERROR nErr = %d\n", timestamp, nErr);
+#endif
         return nErr;
-
+    }
     m_nPosLimitMin = nLimit;
+#if defined PLUGIN_DEBUG && PLUGIN_DEBUG >= 2
+        ltime = time(NULL);
+        timestamp = asctime(localtime(&ltime));
+        timestamp[strlen(timestamp) - 1] = 0;
+        fprintf(Logfile, "[%s] [CEFAController::setPosLimitMin] nErr = %d\n", timestamp, nErr);
+#endif
     return nErr;
 }
 
@@ -576,10 +655,22 @@ int CEFAController::setPosLimitMax(int nLimit)
 #endif
 
     nErr = EFACommand(szCmd, szResp, SERIAL_BUFFER_SIZE);
-    if(nErr)
+    if(nErr) {
+#if defined PLUGIN_DEBUG && PLUGIN_DEBUG >= 2
+        ltime = time(NULL);
+        timestamp = asctime(localtime(&ltime));
+        timestamp[strlen(timestamp) - 1] = 0;
+        fprintf(Logfile, "[%s] [CEFAController::setPosLimitMax] ERROR nErr = %d\n", timestamp, nErr);
+#endif
         return nErr;
-
+    }
     m_nPosLimitMax = nLimit;
+#if defined PLUGIN_DEBUG && PLUGIN_DEBUG >= 2
+        ltime = time(NULL);
+        timestamp = asctime(localtime(&ltime));
+        timestamp[strlen(timestamp) - 1] = 0;
+        fprintf(Logfile, "[%s] [CEFAController::setPosLimitMax] nErr = %d\n", timestamp, nErr);
+#endif
     return nErr;
 }
 
@@ -606,6 +697,12 @@ int CEFAController::setPositiveMotorSlewRate(int nRate)
     szCmd[6] = checksum(szCmd+1, szCmd[NUM]+1);
 
     nErr = EFACommand(szCmd, szResp, SERIAL_BUFFER_SIZE);
+#if defined PLUGIN_DEBUG && PLUGIN_DEBUG >= 2
+        ltime = time(NULL);
+        timestamp = asctime(localtime(&ltime));
+        timestamp[strlen(timestamp) - 1] = 0;
+        fprintf(Logfile, "[%s] [CEFAController::setPositiveMotorSlewRate] nErr = %d\n", timestamp, nErr);
+#endif
 
     return nErr;
 }
@@ -631,6 +728,12 @@ int CEFAController::setNegativeMotorSlewRate(int nRate)
 
     nErr = EFACommand(szCmd, szResp, SERIAL_BUFFER_SIZE);
 
+#if defined PLUGIN_DEBUG && PLUGIN_DEBUG >= 2
+        ltime = time(NULL);
+        timestamp = asctime(localtime(&ltime));
+        timestamp[strlen(timestamp) - 1] = 0;
+        fprintf(Logfile, "[%s] [CEFAController::setNegativeMotorSlewRate] nErr = %d\n", timestamp, nErr);
+#endif
     return nErr;
 }
 
@@ -655,6 +758,12 @@ int CEFAController::setFan(bool bOn)
 
     nErr = EFACommand(szCmd, szResp, SERIAL_BUFFER_SIZE);
 
+#if defined PLUGIN_DEBUG && PLUGIN_DEBUG >= 2
+        ltime = time(NULL);
+        timestamp = asctime(localtime(&ltime));
+        timestamp[strlen(timestamp) - 1] = 0;
+        fprintf(Logfile, "[%s] [CEFAController::setFan] nErr = %d\n", timestamp, nErr);
+#endif
     return nErr;
 }
 
@@ -678,12 +787,24 @@ int CEFAController::getFan(bool &bOn)
     szCmd[5] = checksum(szCmd+1, szCmd[NUM]+1);
 
     nErr = EFACommand(szCmd, szResp, SERIAL_BUFFER_SIZE);
-    if(nErr)
+    if(nErr) {
+#if defined PLUGIN_DEBUG && PLUGIN_DEBUG >= 2
+        ltime = time(NULL);
+        timestamp = asctime(localtime(&ltime));
+        timestamp[strlen(timestamp) - 1] = 0;
+        fprintf(Logfile, "[%s] [CEFAController::getFan] ERROR nErr = %d\n", timestamp, nErr);
+#endif
         return nErr;
-
+    }
     if(szResp[5] == 0)
         bOn = true;
 
+#if defined PLUGIN_DEBUG && PLUGIN_DEBUG >= 2
+        ltime = time(NULL);
+        timestamp = asctime(localtime(&ltime));
+        timestamp[strlen(timestamp) - 1] = 0;
+        fprintf(Logfile, "[%s] [CEFAController::getFan] nErr = %d\n", timestamp, nErr);
+#endif
     return nErr;
 }
 
@@ -709,6 +830,12 @@ int CEFAController::setCalibrationState(bool bCalbrated)
 
     nErr = EFACommand(szCmd, szResp, SERIAL_BUFFER_SIZE);
 
+#if defined PLUGIN_DEBUG && PLUGIN_DEBUG >= 2
+        ltime = time(NULL);
+        timestamp = asctime(localtime(&ltime));
+        timestamp[strlen(timestamp) - 1] = 0;
+        fprintf(Logfile, "[%s] [CEFAController::setFan] ERROR nErr = %d\n", timestamp, nErr);
+#endif
     return nErr;
 }
 
@@ -734,12 +861,24 @@ int CEFAController::getCalibrationState(bool &bCalbrated)
     szCmd[6] = checksum(szCmd+1, szCmd[NUM]+1);
 
     nErr = EFACommand(szCmd, szResp, SERIAL_BUFFER_SIZE);
-    if(nErr)
+    if(nErr) {
+#if defined PLUGIN_DEBUG && PLUGIN_DEBUG >= 2
+        ltime = time(NULL);
+        timestamp = asctime(localtime(&ltime));
+        timestamp[strlen(timestamp) - 1] = 0;
+        fprintf(Logfile, "[%s] [CEFAController::getCalibrationState] ERROR nErr = %d\n", timestamp, nErr);
+#endif
         return nErr;
-
+    }
     if(szResp[5] == 0x01)
         bCalbrated = true;
 
+#if defined PLUGIN_DEBUG && PLUGIN_DEBUG >= 2
+        ltime = time(NULL);
+        timestamp = asctime(localtime(&ltime));
+        timestamp[strlen(timestamp) - 1] = 0;
+        fprintf(Logfile, "[%s] [CEFAController::getCalibrationState] nErr = %d\n", timestamp, nErr);
+#endif
     return nErr;
 }
 
@@ -764,6 +903,12 @@ int CEFAController::setStopDetect(bool bEnable)
 
     nErr = EFACommand(szCmd, szResp, SERIAL_BUFFER_SIZE);
 
+#if defined PLUGIN_DEBUG && PLUGIN_DEBUG >= 2
+        ltime = time(NULL);
+        timestamp = asctime(localtime(&ltime));
+        timestamp[strlen(timestamp) - 1] = 0;
+        fprintf(Logfile, "[%s] [CEFAController::setStopDetect] nErr = %d\n", timestamp, nErr);
+#endif
     return nErr;
 }
 
@@ -787,12 +932,24 @@ int CEFAController::getStopDetect(bool &bEnable)
     szCmd[5] = checksum(szCmd+1, szCmd[NUM]+1);
 
     nErr = EFACommand(szCmd, szResp, SERIAL_BUFFER_SIZE);
-    if(nErr)
+    if(nErr) {
+#if defined PLUGIN_DEBUG && PLUGIN_DEBUG >= 2
+        ltime = time(NULL);
+        timestamp = asctime(localtime(&ltime));
+        timestamp[strlen(timestamp) - 1] = 0;
+        fprintf(Logfile, "[%s] [CEFAController::getStopDetect] ERROR nErr = %d\n", timestamp, nErr);
+#endif
         return nErr;
-
+    }
     if(szResp[5] == 0x01)
         bEnable = true;
 
+#if defined PLUGIN_DEBUG && PLUGIN_DEBUG >= 2
+        ltime = time(NULL);
+        timestamp = asctime(localtime(&ltime));
+        timestamp[strlen(timestamp) - 1] = 0;
+        fprintf(Logfile, "[%s] [CEFAController::getStopDetect] nErr = %d\n", timestamp, nErr);
+#endif
     return nErr;
 }
 
@@ -820,6 +977,12 @@ int CEFAController::setApproachDir(int nDir)
 
     nErr = EFACommand(szCmd, szResp, SERIAL_BUFFER_SIZE);
 
+#if defined PLUGIN_DEBUG && PLUGIN_DEBUG >= 2
+        ltime = time(NULL);
+        timestamp = asctime(localtime(&ltime));
+        timestamp[strlen(timestamp) - 1] = 0;
+        fprintf(Logfile, "[%s] [CEFAController::setApproachDir] nErr = %d\n", timestamp, nErr);
+#endif
     return nErr;
 }
 
@@ -842,11 +1005,23 @@ int CEFAController::getApproachDir(int &nDir)
     szCmd[5] = checksum(szCmd+1, szCmd[NUM]+1);
 
     nErr = EFACommand(szCmd, szResp, SERIAL_BUFFER_SIZE);
-    if(nErr)
+    if(nErr) {
+#if defined PLUGIN_DEBUG && PLUGIN_DEBUG >= 2
+        ltime = time(NULL);
+        timestamp = asctime(localtime(&ltime));
+        timestamp[strlen(timestamp) - 1] = 0;
+        fprintf(Logfile, "[%s] [CEFAController::getApproachDir] ERROR nErr = %d\n", timestamp, nErr);
+#endif
         return nErr;
-
+    }
     nDir = szResp[5];
 
+#if defined PLUGIN_DEBUG && PLUGIN_DEBUG >= 2
+        ltime = time(NULL);
+        timestamp = asctime(localtime(&ltime));
+        timestamp[strlen(timestamp) - 1] = 0;
+        fprintf(Logfile, "[%s] [CEFAController::getApproachDir] nErr = %d\n", timestamp, nErr);
+#endif
     return nErr;
 }
 
@@ -894,7 +1069,7 @@ int CEFAController::takeEFABus()
 #endif
 
     // set RTS to true -> we're taking the bus
-    nErr = setRequestToSendSerx(m_pSerx, true);
+    setRequestToSendSerx(m_pSerx, true);
     return nErr;
 }
 
@@ -910,7 +1085,7 @@ int CEFAController::releaseEFABus()
     #endif
 
     // set RTS to false -> we're releasing the bus
-    nErr = setRequestToSendSerx(m_pSerx, false);
+    setRequestToSendSerx(m_pSerx, false);
     return nErr;
 }
 
@@ -926,7 +1101,7 @@ int CEFAController::EFACommand(const unsigned char *pszCmd, unsigned char *pszRe
     if(!m_bIsConnected)
 		return ERR_COMMNOLINK;
 
-    nErr = takeEFABus();
+    takeEFABus();
     m_pSerx->purgeTxRx();
 #if defined PLUGIN_DEBUG && PLUGIN_DEBUG >= 2
 	ltime = time(NULL);
@@ -978,6 +1153,12 @@ int CEFAController::EFACommand(const unsigned char *pszCmd, unsigned char *pszRe
         fflush(Logfile);
 #endif
         if(nErr) {
+#if defined PLUGIN_DEBUG && PLUGIN_DEBUG >= 2
+        ltime = time(NULL);
+        timestamp = asctime(localtime(&ltime));
+        timestamp[strlen(timestamp) - 1] = 0;
+        fprintf(Logfile, "[%s] [CEFAController::EFACommand] nErr = %d\n", timestamp, nErr);
+#endif
             return nErr;
         }
         // if we  expect a response and get a packet but we're not the receicer .. try to read another response, 3 times max
@@ -998,6 +1179,7 @@ int CEFAController::EFACommand(const unsigned char *pszCmd, unsigned char *pszRe
         timestamp[strlen(timestamp) - 1] = 0;
         hexdump(pszResult, cHexMessage, pszResult[1]+3, LOG_BUFFER_SIZE);
         fprintf(Logfile, "[%s] [CEFAController::EFACommand] response copied to pszResult : \"%s\"\n", timestamp, cHexMessage);
+        fprintf(Logfile, "[%s] [CEFAController::EFACommand] nErr = %d\n", timestamp, nErr);
         fflush(Logfile);
 #endif
         }
