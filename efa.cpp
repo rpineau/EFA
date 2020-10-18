@@ -409,7 +409,7 @@ int CEFAController::getPosLimitMin(int &nPosLimit)
     ltime = time(NULL);
     timestamp = asctime(localtime(&ltime));
     timestamp[strlen(timestamp) - 1] = 0;
-    fprintf(Logfile, "[%s] [CEFAController::getPosLimit] m_nPosLimitMin = %d\n", timestamp, m_nPosLimitMin);
+    fprintf(Logfile, "[%s] [CEFAController::getPosLimitMin] m_nPosLimitMin = %d\n", timestamp, m_nPosLimitMin);
     fflush(Logfile);
 #endif
     nPosLimit = m_nPosLimitMin;
@@ -511,7 +511,7 @@ int CEFAController::setPosLimitMax(int nLimit)
     ltime = time(NULL);
     timestamp = asctime(localtime(&ltime));
     timestamp[strlen(timestamp) - 1] = 0;
-    fprintf(Logfile, "[%s] [CEFAController::setPosLimitMin] new limit : %d\n", timestamp, nLimit);
+    fprintf(Logfile, "[%s] [CEFAController::setPosLimitMax] new limit : %d\n", timestamp, nLimit);
     fflush(Logfile);
 #endif
 
