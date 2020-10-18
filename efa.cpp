@@ -289,12 +289,22 @@ int CEFAController::getTemperature(double &dTemperature)
     if(nErr)
         return nErr;
 
-    rawTemp = szResp[6] + szResp[5]*256;
+    rawTemp = szResp[5] + szResp[6]*256;
     if(rawTemp & 0x8000)
         rawTemp = rawTemp - 0x10000;
     
     dTemperature = double(rawTemp)/10.6;
-    
+
+#if defined PLUGIN_DEBUG && PLUGIN_DEBUG >= 2
+    ltime = time(NULL);
+    timestamp = asctime(localtime(&ltime));
+    timestamp[strlen(timestamp) - 1] = 0;
+    fprintf(Logfile, "[%s] [CEFAController::getTemperature] szResp[5] : %02x\n", timestamp, szResp[5]);
+    fprintf(Logfile, "[%s] [CEFAController::getTemperature] szResp[6] : %02x\n", timestamp, szResp[6]);
+    fprintf(Logfile, "[%s] [CEFAController::getTemperature] dTemperature : %5.2f\n", timestamp, dTemperature);
+    fflush(Logfile);
+#endif
+
     return nErr;
 }
 
