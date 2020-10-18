@@ -23,7 +23,6 @@ CEFAController::CEFAController()
     m_nPosLimitMin = 0;
     m_nPosLimitMax = 0;
     m_bMoving = false;
-    m_nNbGoto = 0;
     
 
 #ifdef PLUGIN_DEBUG
@@ -118,6 +117,14 @@ int CEFAController::haltFocuser()
 		return ERR_COMMNOLINK;
 
     nErr = setPositiveMotorSlewRate(0); // stop
+    nErr |= setTrackPositiveMotorRate(0); // to be sure
+#if defined PLUGIN_DEBUG && PLUGIN_DEBUG >= 2
+    ltime = time(NULL);
+    timestamp = asctime(localtime(&ltime));
+    timestamp[strlen(timestamp) - 1] = 0;
+    fprintf(Logfile, "[%s] [CEFAController::haltFocuser] nErr = %d\n", timestamp, nErr);
+    fflush(Logfile);
+#endif
     m_nTargetPos = m_nCurPos;
 
     return nErr;
@@ -163,7 +170,6 @@ int CEFAController::gotoPosition(int nPos)
         return nErr;
     }
     m_nTargetPos = nPos;
-    m_nNbGoto = 0;
     
 #if defined PLUGIN_DEBUG && PLUGIN_DEBUG >= 2
     ltime = time(NULL);
@@ -269,7 +275,7 @@ int CEFAController::isMotorMoving(bool &bMoving)
 #endif
         return nErr;
     }
-    if(szResp[5] == 0xFF) // FF = goto is over.
+    if(szResp[5] == 0xFF || szResp[5] == 0xFE) // FF = goto is over or has been aborted
         m_bMoving = false;
     else
         m_bMoving = true;
@@ -736,6 +742,74 @@ int CEFAController::setNegativeMotorSlewRate(int nRate)
 #endif
     return nErr;
 }
+
+int CEFAController::setTrackPositiveMotorRate(int nRate)
+{
+    int nErr = PLUGIN_OK;
+    unsigned char szCmd[SERIAL_BUFFER_SIZE];
+    unsigned char szResp[SERIAL_BUFFER_SIZE];
+
+    if(!m_bIsConnected)
+        return ERR_COMMNOLINK;
+
+    if(nRate > 9)
+        return ERR_CMDFAILED;
+
+    memset(szCmd,0, SERIAL_BUFFER_SIZE);
+
+    szCmd[0] = SOM;
+    szCmd[NUM] = 6;
+    szCmd[SRC] = PC;
+    szCmd[RCV] = FOC_TEMP;
+    szCmd[CMD] = MTR_PTRACK;
+    szCmd[5] = (nRate & 0x00FF0000)>>16;
+    szCmd[6] = (nRate & 0x0000FF00)>>8;
+    szCmd[7] = (nRate & 0x000000FF);
+    szCmd[8] = checksum(szCmd+1, szCmd[NUM]+1);
+
+    nErr = EFACommand(szCmd, szResp, SERIAL_BUFFER_SIZE);
+#if defined PLUGIN_DEBUG && PLUGIN_DEBUG >= 2
+        ltime = time(NULL);
+        timestamp = asctime(localtime(&ltime));
+        timestamp[strlen(timestamp) - 1] = 0;
+        fprintf(Logfile, "[%s] [CEFAController::setTrackPositiveMotorSlewRate] nErr = %d\n", timestamp, nErr);
+#endif
+
+    return nErr;
+}
+
+int CEFAController::setTrackNegativeMotorRate(int nRate)
+{
+    int nErr = PLUGIN_OK;
+    unsigned char szCmd[SERIAL_BUFFER_SIZE];
+    unsigned char szResp[SERIAL_BUFFER_SIZE];
+
+    if(!m_bIsConnected)
+        return ERR_COMMNOLINK;
+
+    memset(szCmd,0, SERIAL_BUFFER_SIZE);
+
+    szCmd[0] = SOM;
+    szCmd[NUM] = 6;
+    szCmd[SRC] = PC;
+    szCmd[RCV] = FOC_TEMP;
+    szCmd[CMD] = MTR_NTRACK;
+    szCmd[5] = (nRate & 0x00FF0000)>>16;
+    szCmd[6] = (nRate & 0x0000FF00)>>8;
+    szCmd[7] = (nRate & 0x000000FF);
+    szCmd[8] = checksum(szCmd+1, szCmd[NUM]+1);
+
+    nErr = EFACommand(szCmd, szResp, SERIAL_BUFFER_SIZE);
+
+#if defined PLUGIN_DEBUG && PLUGIN_DEBUG >= 2
+        ltime = time(NULL);
+        timestamp = asctime(localtime(&ltime));
+        timestamp[strlen(timestamp) - 1] = 0;
+        fprintf(Logfile, "[%s] [CEFAController::setNegativeMotorSlewRate] nErr = %d\n", timestamp, nErr);
+#endif
+    return nErr;
+}
+
 
 int CEFAController::setFan(bool bOn)
 {

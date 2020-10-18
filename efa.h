@@ -123,6 +123,9 @@ public:
 
     int         setPositiveMotorSlewRate(int nRate);
     int         setNegativeMotorSlewRate(int nRate);
+    int         setTrackPositiveMotorRate(int nRate);
+    int         setTrackNegativeMotorRate(int nRate);
+
     int         setFan(bool bOn);
     int         getFan(bool &bOn);
     int         setCalibrationState(bool bCalbrated);
@@ -163,7 +166,6 @@ protected:
     int             m_nPosLimitMax;
     bool            m_bPosLimitEnabled;
     bool            m_bMoving;
-    int             m_nNbGoto;
     
 #ifdef PLUGIN_DEBUG
     std::string m_sLogfilePath;
