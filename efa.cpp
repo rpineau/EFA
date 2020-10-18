@@ -754,7 +754,16 @@ int CEFAController::takeEFABus()
         m_pSleeper->sleep(100);
     }
     // set RTS to true -> we're taking the bus
-    setRequestToSendSerx(m_pSerx, true);
+    nErr = setRequestToSendSerx(m_pSerx, true);
+    if(nErr) {
+#if defined PLUGIN_DEBUG && PLUGIN_DEBUG >= 2
+        ltime = time(NULL);
+        timestamp = asctime(localtime(&ltime));
+        timestamp[strlen(timestamp) - 1] = 0;
+        fprintf(Logfile, "[%s] [CEFAController::takeEFABus] error seting RTS to true\n", timestamp);
+        fflush(Logfile);
+#endif
+    }
     return nErr;
 }
 
@@ -765,12 +774,21 @@ int CEFAController::releaseEFABus()
             ltime = time(NULL);
             timestamp = asctime(localtime(&ltime));
             timestamp[strlen(timestamp) - 1] = 0;
-            fprintf(Logfile, "[%s] [CEFAController::takeEFABus] taking the bus\n", timestamp);
+            fprintf(Logfile, "[%s] [CEFAController::releaseEFABus] releasing the bus\n", timestamp);
             fflush(Logfile);
     #endif
 
     // set RTS to false -> we're releasing the bus
     nErr = setRequestToSendSerx(m_pSerx, false);
+    if(nErr) {
+#if defined PLUGIN_DEBUG && PLUGIN_DEBUG >= 2
+        ltime = time(NULL);
+        timestamp = asctime(localtime(&ltime));
+        timestamp[strlen(timestamp) - 1] = 0;
+        fprintf(Logfile, "[%s] [CEFAController::releaseEFABus] error seting RTS to false\n", timestamp);
+        fflush(Logfile);
+#endif
+    }
     return nErr;
 }
 
