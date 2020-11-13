@@ -66,7 +66,8 @@ public:
 	/*!\name DriverRootInterface Implementation
 	See DriverRootInterface.*/
 	//@{ 
-	virtual int                                 queryAbstraction(const char* pszName, void** ppVal);
+    virtual DeviceType                          deviceType(void) {return DriverRootInterface::DT_FOCUSER;}
+    virtual int                                 queryAbstraction(const char* pszName, void** ppVal);
 	//@} 
 
 	/*!\name DriverInfoInterface Implementation
