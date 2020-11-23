@@ -38,7 +38,7 @@ class TickCountInterface;
 
 #define LOG_BUFFER_SIZE 256
 #define TMP_BUF_SIZE    1024
-
+enum CAL_DIR    {MOVING_IN = 0, MOVING_OUT};
 /*!
 \brief The X2Focuser example.
 
@@ -156,14 +156,19 @@ private:
 
 	bool                                    m_bLinked;
 	int                                     m_nPosition;
+    int                                     m_nPrevPostion;
     double                                  m_fLastTemp;
-    CEFAController                         m_EFAController;
+    CEFAController                          m_EFAController;
     bool                                    mUiEnabled;
 
     bool                                    m_bFanOn;
     bool                                    m_bStopDetect;
     bool                                    m_bCalibrated;
-
+    bool                                    m_bCalibrating;
+    int                                     m_nCalibrationDirection;
+    
+    CStopWatch                              mCalibrationTimer;
+    
 };
 
 

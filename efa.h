@@ -135,7 +135,8 @@ public:
     int         setApproachDir(int nDir);
     int         getApproachDir(int &nDir);
 
-
+    int         ticksPerSecondToTrackRate(int nTicksPerSecond);
+    
 protected:
     int             takeEFABus();
     int             releaseEFABus();

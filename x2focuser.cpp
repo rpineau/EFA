@@ -33,6 +33,7 @@ X2Focuser::X2Focuser(const char* pszDisplayName,
 	m_pTickCount					= pTickCountIn;
 	
 	m_bLinked = false;
+    m_bCalibrating = false;
 	m_nPosition = 0;
     m_fLastTemp = -273.15f; // aboslute zero :)
 
@@ -153,8 +154,9 @@ int	X2Focuser::establishLink(void)
     nErr = m_EFAController.Connect(szPort);
     if(nErr)
         m_bLinked = false;
-    else
+    else {
         m_bLinked = true;
+    }
 
     return nErr;
 }
@@ -197,7 +199,8 @@ int	X2Focuser::execModalSettingsDialog(void)
     bool bFanOn;
     bool bStopDetect;
     bool bCalibrated;
-
+    char szTmp[256];
+    
     mUiEnabled = false;
 
     if (NULL == ui)
@@ -214,9 +217,6 @@ int	X2Focuser::execModalSettingsDialog(void)
     if(m_bLinked) {
         // new position (set to current )
         nErr = m_EFAController.getPosition(nPosition);
-        if(nErr)
-            return nErr;
-        nErr = m_EFAController.getPosLimitMin(nPosLimitMin);
         if(nErr)
             return nErr;
 
@@ -245,11 +245,14 @@ int	X2Focuser::execModalSettingsDialog(void)
         dx->setEnabled("newPos", true);
         dx->setEnabled("pushButton", true);
         dx->setPropertyInt("newPos", "value", nPosition);
-        dx->setEnabled("posLimit", true);
         dx->setEnabled("pushButton_2", true);
-        dx->setPropertyInt("posLimitMin", "value", nPosLimitMin);
-        dx->setPropertyInt("posLimitMax", "value", nPosLimitMax);
+        snprintf(szTmp, 256, "%d", nPosLimitMax);
+        dx->setText("maxPos", szTmp);
 
+        if(m_bCalibrated)
+            dx->setText("isCalibrated", "<html><head/><body><p><span style=\" color:#00ff00;\">Calibrated</span></p></body></html>");
+        else
+            dx->setText("isCalibrated", "<html><head/><body><p><span style=\" color:#ff0000;\">Not calibrated</span></p></body></html>");
         dx->setEnabled("radioButtonAppPos", true);
         dx->setEnabled("radioButtonAppNeg", true);
         if(nApproachDir == 1) {
@@ -266,15 +269,11 @@ int	X2Focuser::execModalSettingsDialog(void)
         dx->setEnabled("isStopDetect", true);
         dx->setChecked("isStopDetect", bStopDetect);
 
-        dx->setEnabled("isCalibrated", true);
-        dx->setChecked("isCalibrated", bCalibrated);
-
     }
     else {
         // disable all controls
         dx->setEnabled("newPos", false);
         dx->setPropertyInt("newPos", "value", 0);
-        dx->setEnabled("posLimit", false);
         dx->setPropertyInt("posLimit", "value", 0);
         dx->setEnabled("pushButton", false);
         dx->setEnabled("pushButton_2", false);
@@ -282,10 +281,10 @@ int	X2Focuser::execModalSettingsDialog(void)
         dx->setEnabled("radioButtonAppNeg", false);
         dx->setEnabled("isFanOn", false);
         dx->setEnabled("isStopDetect", false);
-        dx->setEnabled("isCalibrated", false);
     }
 
     //Display the user interface
+    m_bCalibrating = false;
     mUiEnabled = true;
     if ((nErr = ui->exec(bPressedOK)))
         return nErr;
@@ -303,7 +302,12 @@ void X2Focuser::uiEvent(X2GUIExchangeInterface* uiex, const char* pszEvent)
     int nErr = SB_OK;
     int nTmpVal;
     char szErrorMessage[LOG_BUFFER_SIZE];
-
+    bool bMoving;
+    bool bTest;
+    int nPosLimitMin;
+    int nPosLimitMax;
+    char szTmp[256];
+    
     // new position
     if (!strcmp(pszEvent, "on_pushButton_clicked")) {
         uiex->propertyInt("newPos", "value", nTmpVal);
@@ -317,26 +321,67 @@ void X2Focuser::uiEvent(X2GUIExchangeInterface* uiex, const char* pszEvent)
 
     // new limit
     if (!strcmp(pszEvent, "on_pushButton_2_clicked")) {
-        uiex->propertyInt("posLimitMin", "value", nTmpVal);
-        nErr = m_EFAController.setPosLimitMin(nTmpVal);
-        if(nErr) {
-            snprintf(szErrorMessage, LOG_BUFFER_SIZE, "Error setting new limit : Error %d", nErr);
-            uiex->messageBox("Set New Limit", szErrorMessage);
-            return;
+        if(m_bCalibrating) { // abort
+            m_bCalibrating = false;
+            m_EFAController.trackNegativeMotorRate(0);
+            m_EFAController.trackPositiveMotorRate(0);
+            uiex->setText("pushButton_2", "Calibrate limits");
+            m_EFAController.setCalibrationState(false);
+            m_bCalibrated = false;
+            uiex->setText("isCalibrated", "<html><head/><body><p><span style=\" color:#ff0000;\">Not calibrated</span></p></body></html>");
         }
-    }
-
-    if (!strcmp(pszEvent, "on_pushButton_3_clicked")) {
-        uiex->propertyInt("posLimitMax", "value", nTmpVal);
-        nErr = m_EFAController.setPosLimitMax(nTmpVal);
-        if(nErr) {
-            snprintf(szErrorMessage, LOG_BUFFER_SIZE, "Error setting new limit : Error %d", nErr);
-            uiex->messageBox("Set New Limit", szErrorMessage);
-            return;
+        else {
+            // start calibration
+            m_EFAController.setPosLimitMin(0);
+            m_EFAController.setPosLimitMax(3900000);
+            m_EFAController.getPosition(m_nPosition);
+            m_nPrevPostion = m_nPosition;
+            m_bCalibrating = true;
+            m_EFAController.trackNegativeMotorRate(m_EFAController.ticksPerSecondToTrackRate(50000));
+            m_nCalibrationDirection = MOVING_IN;
+            uiex->setText("pushButton_2", "Abort Calibration");
+            mCalibrationTimer.Reset();
         }
     }
 
     if (!strcmp(pszEvent, "on_timer")) {
+        if(m_bCalibrating) {
+            m_EFAController.getPosition(m_nPosition);
+            bMoving = (m_nPrevPostion != m_nPosition);
+            m_nPrevPostion = m_nPosition;
+            mCalibrationTimer.Reset();
+            if(!bMoving && m_nCalibrationDirection == MOVING_IN) {
+                m_EFAController.trackNegativeMotorRate(0);
+                m_EFAController.setPosLimitMin(0);
+                m_EFAController.syncMotorPosition(0);
+                m_EFAController.trackPositiveMotorRate(m_EFAController.ticksPerSecondToTrackRate(50000));
+                m_nCalibrationDirection = MOVING_OUT;
+            }
+            else if(!bMoving && m_nCalibrationDirection == MOVING_OUT) {
+                m_EFAController.trackPositiveMotorRate(0);
+                m_EFAController.setPosLimitMax(m_nPosition);
+                snprintf(szTmp, 256, "%d", m_nPosition);
+                uiex->setText("maxPos", szTmp);
+                m_bCalibrating = false;
+                m_EFAController.setCalibrationState(true);
+                m_bCalibrated = true;
+                uiex->setText("isCalibrated", "<html><head/><body><p><span style=\" color:#00ff00;\">Calibrated</span></p></body></html>");
+                uiex->setText("pushButton_2", "Calibrate limits");
+                // make sure the values are not insane
+                m_EFAController.getPosLimitMin(nPosLimitMin);
+                m_EFAController.getPosLimitMax(nPosLimitMax);
+                if(nPosLimitMin == nPosLimitMax) {
+                    m_EFAController.setPosLimitMin(0);
+                    m_EFAController.syncMotorPosition(0);
+                    m_EFAController.setPosLimitMax(3900000);
+                }
+                if(nPosLimitMax > 3900000)  {
+                    m_EFAController.setPosLimitMax(3900000);
+                    uiex->setText("maxPos", "3900000");
+                }
+            }
+        }
+        
         if(uiex->isChecked("isFanOn")) {
             if(!m_bFanOn){ // only change state if needed
                 m_EFAController.setFan(true);
@@ -361,17 +406,6 @@ void X2Focuser::uiEvent(X2GUIExchangeInterface* uiex, const char* pszEvent)
             }
         }
 
-        if(uiex->isChecked("isCalibrated")) {
-            if(!m_bCalibrated){ // only change state if needed
-                m_EFAController.setCalibrationState(true);
-                m_bCalibrated = true;
-            }
-        } else {
-            if(m_bCalibrated){ // only change state if needed
-                m_EFAController.setCalibrationState(false);
-                m_bCalibrated = false;
-            }
-        }
     }
 }
 

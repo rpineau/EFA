@@ -297,6 +297,7 @@ int CEFAController::isMotorMoving(bool &bMoving)
         ltime = time(NULL);
         timestamp = asctime(localtime(&ltime));
         timestamp[strlen(timestamp) - 1] = 0;
+        fprintf(Logfile, "[%s] [CEFAController::isMotorMoving] m_bMoving = %s\n", timestamp, m_bMoving?"Yes":"No");
         fprintf(Logfile, "[%s] [CEFAController::isMotorMoving] nErr = %d\n", timestamp, nErr);
 #endif
     return nErr;
@@ -439,17 +440,11 @@ int CEFAController::getPosition(int &nPosition)
     timestamp = asctime(localtime(&ltime));
     timestamp[strlen(timestamp) - 1] = 0;
     fprintf(Logfile, "[%s] [CEFAController::getPosition] nPosition = %d\n", timestamp, nPosition);
+    fprintf(Logfile, "[%s] [CEFAController::getPosition] nErr = %d\n", timestamp, nErr);
     fflush(Logfile);
 #endif
 
     m_nCurPos = nPosition;
-
-#if defined PLUGIN_DEBUG && PLUGIN_DEBUG >= 2
-        ltime = time(NULL);
-        timestamp = asctime(localtime(&ltime));
-        timestamp[strlen(timestamp) - 1] = 0;
-        fprintf(Logfile, "[%s] [CEFAController::getPosition] nErr = %d\n", timestamp, nErr);
-#endif
     return nErr;
 }
 
@@ -536,15 +531,10 @@ int CEFAController::getPosLimitMin(int &nPosLimit)
     timestamp = asctime(localtime(&ltime));
     timestamp[strlen(timestamp) - 1] = 0;
     fprintf(Logfile, "[%s] [CEFAController::getPosLimitMin] m_nPosLimitMin = %d\n", timestamp, m_nPosLimitMin);
+    fprintf(Logfile, "[%s] [CEFAController::getPosLimitMin] nErr = %d\n", timestamp, nErr);
     fflush(Logfile);
 #endif
     nPosLimit = m_nPosLimitMin;
-#if defined PLUGIN_DEBUG && PLUGIN_DEBUG >= 2
-        ltime = time(NULL);
-        timestamp = asctime(localtime(&ltime));
-        timestamp[strlen(timestamp) - 1] = 0;
-        fprintf(Logfile, "[%s] [CEFAController::getPosLimitMin] nErr = %d\n", timestamp, nErr);
-#endif
     return nErr;
 }
 
@@ -582,15 +572,10 @@ int CEFAController::getPosLimitMax(int &nPosLimit)
     timestamp = asctime(localtime(&ltime));
     timestamp[strlen(timestamp) - 1] = 0;
     fprintf(Logfile, "[%s] [CEFAController::getPosLimitMax] m_nPosLimitMax = %d\n", timestamp, m_nPosLimitMax);
+    fprintf(Logfile, "[%s] [CEFAController::getPosLimitMax] nErr = %d\n", timestamp, nErr);
     fflush(Logfile);
 #endif
     nPosLimit = m_nPosLimitMax;
-#if defined PLUGIN_DEBUG && PLUGIN_DEBUG >= 2
-        ltime = time(NULL);
-        timestamp = asctime(localtime(&ltime));
-        timestamp[strlen(timestamp) - 1] = 0;
-        fprintf(Logfile, "[%s] [CEFAController::getPosLimitMax] nErr = %d\n", timestamp, nErr);
-#endif
     return nErr;
 }
 
@@ -763,9 +748,6 @@ int CEFAController::trackPositiveMotorRate(int nRate)
     if(!m_bIsConnected)
         return ERR_COMMNOLINK;
 
-    if(nRate > 9)
-        return ERR_CMDFAILED;
-
     memset(szCmd,0, SERIAL_BUFFER_SIZE);
 
     szCmd[0] = SOM;
@@ -779,13 +761,14 @@ int CEFAController::trackPositiveMotorRate(int nRate)
     szCmd[8] = checksum(szCmd+1, szCmd[NUM]+1);
 
     nErr = EFACommand(szCmd, szResp, SERIAL_BUFFER_SIZE);
+
 #if defined PLUGIN_DEBUG && PLUGIN_DEBUG >= 2
         ltime = time(NULL);
         timestamp = asctime(localtime(&ltime));
         timestamp[strlen(timestamp) - 1] = 0;
-        fprintf(Logfile, "[%s] [CEFAController::setTrackPositiveMotorSlewRate] nErr = %d\n", timestamp, nErr);
+        fprintf(Logfile, "[%s] [CEFAController::trackPositiveMotorRate] nRate = %d\n", timestamp, nRate);
+        fprintf(Logfile, "[%s] [CEFAController::trackPositiveMotorRate] nErr = %d\n", timestamp, nErr);
 #endif
-
     return nErr;
 }
 
@@ -816,7 +799,8 @@ int CEFAController::trackNegativeMotorRate(int nRate)
         ltime = time(NULL);
         timestamp = asctime(localtime(&ltime));
         timestamp[strlen(timestamp) - 1] = 0;
-        fprintf(Logfile, "[%s] [CEFAController::setNegativeMotorSlewRate] nErr = %d\n", timestamp, nErr);
+        fprintf(Logfile, "[%s] [CEFAController::trackNegativeMotorRate] nRate = %d\n", timestamp, nRate);
+        fprintf(Logfile, "[%s] [CEFAController::trackNegativeMotorRate] nErr = %d\n", timestamp, nErr);
 #endif
     return nErr;
 }
@@ -1123,6 +1107,11 @@ int CEFAController::getApproachDir(int &nDir)
 }
 
 
+int CEFAController::ticksPerSecondToTrackRate(int nTicksPerSecond)
+{
+    return int(nTicksPerSecond * 79.101);
+}
+
 #pragma mark command and response functions
 
 int CEFAController::takeEFABus()
@@ -1131,7 +1120,7 @@ int CEFAController::takeEFABus()
     int nTimeout = 0;
     bool bCTS;
 
-    #if defined PLUGIN_DEBUG && PLUGIN_DEBUG >= 2
+    #if defined PLUGIN_DEBUG && PLUGIN_DEBUG >= 3
             ltime = time(NULL);
             timestamp = asctime(localtime(&ltime));
             timestamp[strlen(timestamp) - 1] = 0;
@@ -1173,7 +1162,7 @@ int CEFAController::takeEFABus()
 int CEFAController::releaseEFABus()
 {
     int nErr = PLUGIN_OK;
-    #if defined PLUGIN_DEBUG && PLUGIN_DEBUG >= 2
+    #if defined PLUGIN_DEBUG && PLUGIN_DEBUG >= 3
             ltime = time(NULL);
             timestamp = asctime(localtime(&ltime));
             timestamp[strlen(timestamp) - 1] = 0;
@@ -1200,7 +1189,7 @@ int CEFAController::EFACommand(const unsigned char *pszCmd, unsigned char *pszRe
 
     takeEFABus();
     m_pSerx->purgeTxRx();
-#if defined PLUGIN_DEBUG && PLUGIN_DEBUG >= 2
+#if defined PLUGIN_DEBUG && PLUGIN_DEBUG >= 3
 	ltime = time(NULL);
 	timestamp = asctime(localtime(&ltime));
 	timestamp[strlen(timestamp) - 1] = 0;
@@ -1250,7 +1239,7 @@ int CEFAController::EFACommand(const unsigned char *pszCmd, unsigned char *pszRe
         fflush(Logfile);
 #endif
         if(nErr) {
-#if defined PLUGIN_DEBUG && PLUGIN_DEBUG >= 2
+#if defined PLUGIN_DEBUG && PLUGIN_DEBUG >= 3
         ltime = time(NULL);
         timestamp = asctime(localtime(&ltime));
         timestamp[strlen(timestamp) - 1] = 0;
@@ -1270,7 +1259,7 @@ int CEFAController::EFACommand(const unsigned char *pszCmd, unsigned char *pszRe
         memset(pszResult,0, nResultMaxLen);
         memcpy(pszResult, szResp, szResp[1]+3);
 
-#if defined PLUGIN_DEBUG && PLUGIN_DEBUG >= 2
+#if defined PLUGIN_DEBUG && PLUGIN_DEBUG >= 3
         ltime = time(NULL);
         timestamp = asctime(localtime(&ltime));
         timestamp[strlen(timestamp) - 1] = 0;
