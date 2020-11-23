@@ -24,6 +24,7 @@ CEFAController::CEFAController()
     m_nPosLimitMax = 0;
     m_bMoving = false;
     
+    m_nDefaultTempSource = AMBIANT;
 
 #ifdef PLUGIN_DEBUG
 #if defined(SB_WIN_BUILD)
@@ -354,6 +355,12 @@ int CEFAController::getFirmwareVersion(char *pszVersion, int nStrMaxLen)
 
 int CEFAController::getTemperature(double &dTemperature)
 {
+    return getTemperature(m_nDefaultTempSource, dTemperature);
+}
+
+
+int CEFAController::getTemperature(int nSource, double &dTemperature)
+{
     int nErr = PLUGIN_OK;
     unsigned char szCmd[SERIAL_BUFFER_SIZE];
     unsigned char szResp[SERIAL_BUFFER_SIZE];
@@ -368,7 +375,7 @@ int CEFAController::getTemperature(double &dTemperature)
     szCmd[SRC] = PC;
     szCmd[RCV] = FOC_TEMP;
     szCmd[CMD] = TEMP_GET;
-    szCmd[5] = AMBIANT;
+    szCmd[5] = nSource;
     szCmd[6] = checksum(szCmd+1, szCmd[NUM]+1);
 
     nErr = EFACommand(szCmd, szResp, SERIAL_BUFFER_SIZE);
@@ -405,6 +412,17 @@ int CEFAController::getTemperature(double &dTemperature)
 #endif
     return nErr;
 }
+
+void CEFAController::setDefaultTempSource(int nSource)
+{
+    m_nDefaultTempSource = nSource;
+}
+
+void    CEFAController::getDefaultTempSource(int &nSource)
+{
+    nSource = m_nDefaultTempSource;
+}
+
 
 int CEFAController::getPosition(int &nPosition)
 {
@@ -1181,7 +1199,9 @@ int CEFAController::EFACommand(const unsigned char *pszCmd, unsigned char *pszRe
     int nErr = PLUGIN_OK;
     unsigned char szResp[SERIAL_BUFFER_SIZE];
     unsigned long  ulBytesWrite;
+#if defined PLUGIN_DEBUG && PLUGIN_DEBUG >= 3
     unsigned char cHexMessage[LOG_BUFFER_SIZE];
+#endif
     int i;
     
     if(!m_bIsConnected)
@@ -1277,7 +1297,9 @@ int CEFAController::readResponse(unsigned char *pszRespBuffer, int nBufferLen)
     int nErr = PLUGIN_OK;
     unsigned long ulBytesRead = 0;
     int nLen = SERIAL_BUFFER_SIZE;
+#if defined PLUGIN_DEBUG && PLUGIN_DEBUG >= 3
     unsigned char cHexMessage[LOG_BUFFER_SIZE];
+#endif
     unsigned char cChecksum;
 
     if(!m_bIsConnected)

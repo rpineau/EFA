@@ -25,7 +25,7 @@ class TickCountInterface;
 
 #define PARENT_KEY			"EFA"
 #define CHILD_KEY_PORTNAME	"PortName"
-#define POS_LIMIT           "PosLimit"
+#define TEMP_SOURCE         "TempSource"
 #define POS_LIMIT_ENABLED   "PosLimitEnable"
 
 #if defined(SB_WIN_BUILD)

@@ -40,6 +40,12 @@ X2Focuser::X2Focuser(const char* pszDisplayName,
 	m_EFAController.SetSerxPointer(m_pSerX);
 	m_EFAController.setLogger(m_pLogger);
     m_EFAController.setSleeper(m_pSleeper);
+    
+    if (m_pIniUtil) {
+        m_EFAController.setDefaultTempSource(m_pIniUtil->readInt(PARENT_KEY, TEMP_SOURCE, AMBIANT));
+    } else {
+        m_EFAController.setDefaultTempSource(AMBIANT);
+    }
 }
 
 X2Focuser::~X2Focuser()
@@ -193,13 +199,14 @@ int	X2Focuser::execModalSettingsDialog(void)
     X2GUIExchangeInterface*			dx = NULL;//Comes after ui is loaded
     bool bPressedOK = false;
     int nPosition = 0;
-    int nPosLimitMin = 0;
     int nPosLimitMax = 0;
     int nApproachDir = 0;
     bool bFanOn;
     bool bStopDetect;
     bool bCalibrated;
     char szTmp[256];
+    int nTempSource;
+    double dTemperature;
     
     mUiEnabled = false;
 
@@ -240,6 +247,10 @@ int	X2Focuser::execModalSettingsDialog(void)
         nErr = m_EFAController.getCalibrationState(bCalibrated);
         if(nErr)
             return nErr;
+        
+        m_EFAController.getDefaultTempSource(nTempSource);
+
+        
         m_bCalibrated = bCalibrated;
         
         dx->setEnabled("newPos", true);
@@ -269,6 +280,29 @@ int	X2Focuser::execModalSettingsDialog(void)
         dx->setEnabled("isStopDetect", true);
         dx->setChecked("isStopDetect", bStopDetect);
 
+        dx->setCurrentIndex("tempSource", nTempSource);
+
+        m_EFAController.getTemperature(PRIMARY, dTemperature);
+        if(dTemperature > 256)  // that's way to hot ! .. aka the sensor is not present
+            dx->setText("P_Temp", "N/A");
+        else {
+            snprintf(szTmp, 256, "%3.2f ºC", dTemperature);
+            dx->setText("P_Temp", szTmp);
+        }
+        m_EFAController.getTemperature(AMBIANT, dTemperature);
+        if(dTemperature > 256)  // that's way to hot ! .. aka the sensor is not present
+            dx->setText("A_Temp", "N/A");
+        else {
+            snprintf(szTmp, 256, "%3.2f ºC", dTemperature);
+            dx->setText("A_Temp", szTmp);
+        }
+        m_EFAController.getTemperature(SECONDARY, dTemperature);
+        if(dTemperature > 256)  // that's way to hot ! .. aka the sensor is not present
+            dx->setText("S_Temp", "N/A");
+        else {
+            snprintf(szTmp, 256, "%3.2f ºC", dTemperature);
+            dx->setText("S_Temp", szTmp);
+        }
     }
     else {
         // disable all controls
@@ -292,6 +326,9 @@ int	X2Focuser::execModalSettingsDialog(void)
 
     //Retreive values from the user interface
     if (bPressedOK) {
+        nTempSource = dx->currentIndex("tempSource");
+        m_EFAController.setDefaultTempSource(nTempSource);
+        nErr |= m_pIniUtil->writeInt(PARENT_KEY, TEMP_SOURCE, nTempSource);
         nErr = SB_OK;
     }
     return nErr;
@@ -303,9 +340,10 @@ void X2Focuser::uiEvent(X2GUIExchangeInterface* uiex, const char* pszEvent)
     int nTmpVal;
     char szErrorMessage[LOG_BUFFER_SIZE];
     bool bMoving;
-    bool bTest;
     int nPosLimitMin;
     int nPosLimitMax;
+    double dTemperature;
+    
     char szTmp[256];
     
     // new position
@@ -380,8 +418,31 @@ void X2Focuser::uiEvent(X2GUIExchangeInterface* uiex, const char* pszEvent)
                     uiex->setText("maxPos", "3900000");
                 }
             }
+            
         }
         
+        m_EFAController.getTemperature(PRIMARY, dTemperature);
+        if(dTemperature > 256)  // that's way to hot ! .. aka the sensor is not present
+            uiex->setText("P_Temp", "N/A");
+        else {
+            snprintf(szTmp, 256, "%3.2f ºC", dTemperature);
+            uiex->setText("P_Temp", szTmp);
+        }
+        m_EFAController.getTemperature(AMBIANT, dTemperature);
+        if(dTemperature > 256)  // that's way to hot ! .. aka the sensor is not present
+            uiex->setText("A_Temp", "N/A");
+        else {
+            snprintf(szTmp, 256, "%3.2f ºC", dTemperature);
+            uiex->setText("A_Temp", szTmp);
+        }
+        m_EFAController.getTemperature(SECONDARY, dTemperature);
+        if(dTemperature > 256)  // that's way to hot ! .. aka the sensor is not present
+            uiex->setText("S_Temp", "N/A");
+        else {
+            snprintf(szTmp, 256, "%3.2f ºC", dTemperature);
+            uiex->setText("S_Temp", szTmp);
+        }
+
         if(uiex->isChecked("isFanOn")) {
             if(!m_bFanOn){ // only change state if needed
                 m_EFAController.setFan(true);

@@ -114,6 +114,10 @@ public:
 
     int         getFirmwareVersion(char *pszVersion, int nStrMaxLen);
     int         getTemperature(double &dTemperature);
+    int         getTemperature(int nSource, double &dTemperature);
+    void        setDefaultTempSource(int nSource);
+    void        getDefaultTempSource(int &nSource);
+
     int         getPosition(int &nPosition);
     int         syncMotorPosition(int nPos);
     int         getPosLimitMin(int &nPosLimit);
@@ -168,6 +172,7 @@ protected:
     bool            m_bPosLimitEnabled;
     bool            m_bMoving;
     bool            m_bCalibrated;
+    int             m_nDefaultTempSource;
     
 #ifdef PLUGIN_DEBUG
     std::string m_sLogfilePath;
