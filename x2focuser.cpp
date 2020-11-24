@@ -315,6 +315,10 @@ int	X2Focuser::execModalSettingsDialog(void)
         dx->setEnabled("radioButtonAppNeg", false);
         dx->setEnabled("isFanOn", false);
         dx->setEnabled("isStopDetect", false);
+        dx->setEnabled("tempSource", false);
+        dx->setText("P_Temp", "N/A");
+        dx->setText("A_Temp", "N/A");
+        dx->setText("S_Temp", "N/A");
     }
 
     //Display the user interface
@@ -421,52 +425,53 @@ void X2Focuser::uiEvent(X2GUIExchangeInterface* uiex, const char* pszEvent)
             
         }
         
-        m_EFAController.getTemperature(PRIMARY, dTemperature);
-        if(dTemperature > 256)  // that's way to hot ! .. aka the sensor is not present
-            uiex->setText("P_Temp", "N/A");
-        else {
-            snprintf(szTmp, 256, "%3.2f ºC", dTemperature);
-            uiex->setText("P_Temp", szTmp);
-        }
-        m_EFAController.getTemperature(AMBIANT, dTemperature);
-        if(dTemperature > 256)  // that's way to hot ! .. aka the sensor is not present
-            uiex->setText("A_Temp", "N/A");
-        else {
-            snprintf(szTmp, 256, "%3.2f ºC", dTemperature);
-            uiex->setText("A_Temp", szTmp);
-        }
-        m_EFAController.getTemperature(SECONDARY, dTemperature);
-        if(dTemperature > 256)  // that's way to hot ! .. aka the sensor is not present
-            uiex->setText("S_Temp", "N/A");
-        else {
-            snprintf(szTmp, 256, "%3.2f ºC", dTemperature);
-            uiex->setText("S_Temp", szTmp);
-        }
+        if(m_bLinked) {
+            m_EFAController.getTemperature(PRIMARY, dTemperature);
+            if(dTemperature > 256)  // that's way to hot ! .. aka the sensor is not present
+                uiex->setText("P_Temp", "N/A");
+            else {
+                snprintf(szTmp, 256, "%3.2f ºC", dTemperature);
+                uiex->setText("P_Temp", szTmp);
+            }
+            m_EFAController.getTemperature(AMBIANT, dTemperature);
+            if(dTemperature > 256)  // that's way to hot ! .. aka the sensor is not present
+                uiex->setText("A_Temp", "N/A");
+            else {
+                snprintf(szTmp, 256, "%3.2f ºC", dTemperature);
+                uiex->setText("A_Temp", szTmp);
+            }
+            m_EFAController.getTemperature(SECONDARY, dTemperature);
+            if(dTemperature > 256)  // that's way to hot ! .. aka the sensor is not present
+                uiex->setText("S_Temp", "N/A");
+            else {
+                snprintf(szTmp, 256, "%3.2f ºC", dTemperature);
+                uiex->setText("S_Temp", szTmp);
+            }
 
-        if(uiex->isChecked("isFanOn")) {
-            if(!m_bFanOn){ // only change state if needed
-                m_EFAController.setFan(true);
-                m_bFanOn = true;
+            if(uiex->isChecked("isFanOn")) {
+                if(!m_bFanOn){ // only change state if needed
+                    m_EFAController.setFan(true);
+                    m_bFanOn = true;
+                }
+            } else {
+                if(m_bFanOn){ // only change state if needed
+                    m_EFAController.setFan(false);
+                    m_bFanOn = false;
+                }
             }
-        } else {
-            if(m_bFanOn){ // only change state if needed
-                m_EFAController.setFan(false);
-                m_bFanOn = false;
+
+            if(uiex->isChecked("isStopDetect")) {
+                if(!m_bStopDetect){ // only change state if needed
+                    m_EFAController.setStopDetect(true);
+                    m_bStopDetect = true;
+                }
+            } else {
+                if(m_bStopDetect){ // only change state if needed
+                    m_EFAController.setStopDetect(false);
+                    m_bStopDetect = false;
+                }
             }
         }
-
-        if(uiex->isChecked("isStopDetect")) {
-            if(!m_bStopDetect){ // only change state if needed
-                m_EFAController.setStopDetect(true);
-                m_bStopDetect = true;
-            }
-        } else {
-            if(m_bStopDetect){ // only change state if needed
-                m_EFAController.setStopDetect(false);
-                m_bStopDetect = false;
-            }
-        }
-
     }
 }
 
