@@ -22,11 +22,10 @@ class MutexInterface;
 class BasicIniUtilInterface;
 class TickCountInterface;
 
-#define DRIVER_VERSION      1.0
 
 #define PARENT_KEY			"EFA"
 #define CHILD_KEY_PORTNAME	"PortName"
-#define POS_LIMIT           "PosLimit"
+#define TEMP_SOURCE         "TempSource"
 #define POS_LIMIT_ENABLED   "PosLimitEnable"
 
 #if defined(SB_WIN_BUILD)
@@ -39,7 +38,7 @@ class TickCountInterface;
 
 #define LOG_BUFFER_SIZE 256
 #define TMP_BUF_SIZE    1024
-
+enum CAL_DIR    {MOVING_IN = 0, MOVING_OUT};
 /*!
 \brief The X2Focuser example.
 
@@ -67,7 +66,8 @@ public:
 	/*!\name DriverRootInterface Implementation
 	See DriverRootInterface.*/
 	//@{ 
-	virtual int                                 queryAbstraction(const char* pszName, void** ppVal);
+    virtual DeviceType                          deviceType(void) {return DriverRootInterface::DT_FOCUSER;}
+    virtual int                                 queryAbstraction(const char* pszName, void** ppVal);
 	//@} 
 
 	/*!\name DriverInfoInterface Implementation
@@ -127,7 +127,7 @@ public:
     virtual bool                                isBaudRateFixed() const		{return true;}
 
     virtual SerXInterface::Parity               parity() const				{return SerXInterface::B_NOPARITY;}
-    virtual void                                setParity(const SerXInterface::Parity& parity){parity;};
+    virtual void                                setParity(const SerXInterface::Parity& parity){};
     virtual bool                                isParityFixed() const		{return true;}
 
 
@@ -156,14 +156,19 @@ private:
 
 	bool                                    m_bLinked;
 	int                                     m_nPosition;
+    int                                     m_nPrevPostion;
     double                                  m_fLastTemp;
-    CEFAController                         m_EFAController;
+    CEFAController                          m_EFAController;
     bool                                    mUiEnabled;
 
     bool                                    m_bFanOn;
     bool                                    m_bStopDetect;
     bool                                    m_bCalibrated;
-
+    bool                                    m_bCalibrating;
+    int                                     m_nCalibrationDirection;
+    
+    CStopWatch                              mCalibrationTimer;
+    
 };
 
 

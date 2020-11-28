@@ -8,11 +8,22 @@
 #define __EFA__
 #include <math.h>
 #include <string.h>
+#include <stdlib.h>
+#include <stdio.h>
+#include <ctype.h>
+#include <memory.h>
+#ifdef SB_MAC_BUILD
+#include <unistd.h>
+#endif
+#ifdef SB_WIN_BUILD
+#include <time.h>
+#endif
+
+
 #include <string>
 #include <vector>
 #include <sstream>
 #include <iostream>
-
 #include <exception>
 #include <typeinfo>
 #include <stdexcept>
@@ -22,23 +33,24 @@
 #include "../../licensedinterfaces/loggerinterface.h"
 #include "../../licensedinterfaces/sleeperinterface.h"
 
-#define EFA_DEBUG 2
+// #define PLUGIN_DEBUG 2
+#define DRIVER_VERSION      1.0
 
 
 #define SERIAL_BUFFER_SIZE 256
 #define MAX_TIMEOUT 1000
 #define LOG_BUFFER_SIZE 256
 
-enum EFA_Errors     {EFA_OK = 0, NOT_CONNECTED, EFA_CANT_CONNECT, EFA_BAD_CMD_RESPONSE, COMMAND_FAILED};
+enum EFA_Errors     {PLUGIN_OK = 0, NOT_CONNECTED, PLUGIN_CANT_CONNECT, PLUGIN_BAD_CMD_RESPONSE, COMMAND_FAILED};
 enum MotorDir       {NORMAL = 0 , REVERSE};
 enum MotorStatus    {IDLE = 0, MOVING};
 
-#define SOM     0x3B
-#define PC      0x20
-#define HC      0x0D
-#define FOC     0x12
-#define FAN     0x13
-#define TEMP    0x12
+#define SOM         0x3B
+#define PC          0x20
+#define HC          0x0D
+#define FOC_TEMP    0x12
+#define ROT_FAN     0x13
+#define DELTA_T     0x32
 
 #define NUM 1
 #define SRC 2
@@ -55,7 +67,11 @@ enum MotorStatus    {IDLE = 0, MOVING};
 #define MTR_GOTO_POS2               0x17
 #define MTR_OFFSET_CNT              0x04
 #define MTR_GOTO_OVER               0x13
+#define MTR_PTRACK                  0x06
+#define MTR_NTRACK                  0x07
+#define MTR_SLEWLIMITMIN            0x1A
 #define MTR_SLEWLIMITMAX            0x1B
+#define MTR_SLEWLIMITGETMIN         0x1C
 #define MTR_SLEWLIMITGETMAX         0x1D
 #define MTR_PMSLEW_RATE             0x24
 #define MTR_NMSLEW_RATE             0x25
@@ -98,13 +114,22 @@ public:
 
     int         getFirmwareVersion(char *pszVersion, int nStrMaxLen);
     int         getTemperature(double &dTemperature);
+    int         getTemperature(int nSource, double &dTemperature);
+    void        setDefaultTempSource(int nSource);
+    void        getDefaultTempSource(int &nSource);
+
     int         getPosition(int &nPosition);
     int         syncMotorPosition(int nPos);
-    int         getPosLimit(int &nPosLimit);
-    int         setPosLimit(int nLimit);
+    int         getPosLimitMin(int &nPosLimit);
+    int         getPosLimitMax(int &nPosLimit);
+    int         setPosLimitMin(int nLimit);
+    int         setPosLimitMax(int nLimit);
 
     int         setPositiveMotorSlewRate(int nRate);
     int         setNegativeMotorSlewRate(int nRate);
+    int         trackPositiveMotorRate(int nRate);
+    int         trackNegativeMotorRate(int nRate);
+    int         trackAtMotorRate(int nRate);
     int         setFan(bool bOn);
     int         getFan(bool &bOn);
     int         setCalibrationState(bool bCalbrated);
@@ -114,13 +139,22 @@ public:
     int         setApproachDir(int nDir);
     int         getApproachDir(int &nDir);
 
-
+    int         ticksPerSecondToTrackRate(int nTicksPerSecond);
+    
 protected:
-
+    int             takeEFABus();
+    int             releaseEFABus();
+    
     int             EFACommand(const unsigned char *pszCmd, unsigned char *pszResult, int nResultMaxLen);
     int             readResponse(unsigned char *pszRespBuffer, int nBufferLen);
-    unsigned char     checksum(const unsigned char *cMessage, int nLen);
+    unsigned char   checksum(const unsigned char *cMessage, int nLen);
     void            hexdump(const unsigned char* pszInputBuffer, unsigned char *pszOutputBuffer, int nInputBufferSize, int nOutpuBufferSize);
+    
+    
+    bool            isClearToSendSerx(SerXInterface* pSerX);
+    bool            isRequestToSendSerx(SerXInterface* pSerX);
+    bool            setRequestToSendSerx(SerXInterface* pSerX, bool bSet);
+    
     
     SerXInterface   *m_pSerx;
     LoggerInterface *m_pLogger;
@@ -133,11 +167,14 @@ protected:
 
     int             m_nCurPos;
     int             m_nTargetPos;
-    int             m_nPosLimit;
+    int             m_nPosLimitMin;
+    int             m_nPosLimitMax;
     bool            m_bPosLimitEnabled;
     bool            m_bMoving;
-
-#ifdef EFA_DEBUG
+    bool            m_bCalibrated;
+    int             m_nDefaultTempSource;
+    
+#ifdef PLUGIN_DEBUG
     std::string m_sLogfilePath;
 	// timestamp for logs
 	char *timestamp;

@@ -33,12 +33,19 @@ X2Focuser::X2Focuser(const char* pszDisplayName,
 	m_pTickCount					= pTickCountIn;
 	
 	m_bLinked = false;
+    m_bCalibrating = false;
 	m_nPosition = 0;
     m_fLastTemp = -273.15f; // aboslute zero :)
 
 	m_EFAController.SetSerxPointer(m_pSerX);
 	m_EFAController.setLogger(m_pLogger);
     m_EFAController.setSleeper(m_pSleeper);
+    
+    if (m_pIniUtil) {
+        m_EFAController.setDefaultTempSource(m_pIniUtil->readInt(PARENT_KEY, TEMP_SOURCE, AMBIANT));
+    } else {
+        m_EFAController.setDefaultTempSource(AMBIANT);
+    }
 }
 
 X2Focuser::~X2Focuser()
@@ -153,8 +160,9 @@ int	X2Focuser::establishLink(void)
     nErr = m_EFAController.Connect(szPort);
     if(nErr)
         m_bLinked = false;
-    else
+    else {
         m_bLinked = true;
+    }
 
     return nErr;
 }
@@ -191,18 +199,21 @@ int	X2Focuser::execModalSettingsDialog(void)
     X2GUIExchangeInterface*			dx = NULL;//Comes after ui is loaded
     bool bPressedOK = false;
     int nPosition = 0;
-    int nPosLimit = 0;
+    int nPosLimitMax = 0;
     int nApproachDir = 0;
     bool bFanOn;
     bool bStopDetect;
     bool bCalibrated;
-
+    char szTmp[256];
+    int nTempSource;
+    double dTemperature;
+    
     mUiEnabled = false;
 
     if (NULL == ui)
         return ERR_POINTER;
 
-    if ((nErr = ui->loadUserInterface("EFA.ui", deviceType(), m_nPrivateMulitInstanceIndex)))
+    if ((nErr = ui->loadUserInterface("efa.ui", deviceType(), m_nPrivateMulitInstanceIndex)))
         return nErr;
 
     if (NULL == (dx = uiutil.X2DX()))
@@ -215,9 +226,11 @@ int	X2Focuser::execModalSettingsDialog(void)
         nErr = m_EFAController.getPosition(nPosition);
         if(nErr)
             return nErr;
-        nErr = m_EFAController.getPosLimit(nPosLimit);
+
+        nErr = m_EFAController.getPosLimitMax(nPosLimitMax);
         if(nErr)
             return nErr;
+
         nErr = m_EFAController.getApproachDir(nApproachDir);
         if(nErr)
             return nErr;
@@ -234,15 +247,23 @@ int	X2Focuser::execModalSettingsDialog(void)
         nErr = m_EFAController.getCalibrationState(bCalibrated);
         if(nErr)
             return nErr;
+        
+        m_EFAController.getDefaultTempSource(nTempSource);
+
+        
         m_bCalibrated = bCalibrated;
         
         dx->setEnabled("newPos", true);
         dx->setEnabled("pushButton", true);
         dx->setPropertyInt("newPos", "value", nPosition);
-        dx->setEnabled("posLimit", true);
         dx->setEnabled("pushButton_2", true);
-        dx->setPropertyInt("posLimit", "value", nPosLimit);
+        snprintf(szTmp, 256, "%d", nPosLimitMax);
+        dx->setText("maxPos", szTmp);
 
+        if(m_bCalibrated)
+            dx->setText("isCalibrated", "<html><head/><body><p><span style=\" color:#00ff00;\">Calibrated</span></p></body></html>");
+        else
+            dx->setText("isCalibrated", "<html><head/><body><p><span style=\" color:#ff0000;\">Not calibrated</span></p></body></html>");
         dx->setEnabled("radioButtonAppPos", true);
         dx->setEnabled("radioButtonAppNeg", true);
         if(nApproachDir == 1) {
@@ -259,15 +280,34 @@ int	X2Focuser::execModalSettingsDialog(void)
         dx->setEnabled("isStopDetect", true);
         dx->setChecked("isStopDetect", bStopDetect);
 
-        dx->setEnabled("isCalibrated", true);
-        dx->setChecked("isCalibrated", bCalibrated);
+        dx->setCurrentIndex("tempSource", nTempSource);
 
+        m_EFAController.getTemperature(PRIMARY, dTemperature);
+        if(dTemperature > 256)  // that's way to hot ! .. aka the sensor is not present
+            dx->setText("P_Temp", "N/A");
+        else {
+            snprintf(szTmp, 256, "%3.2f ºC", dTemperature);
+            dx->setText("P_Temp", szTmp);
+        }
+        m_EFAController.getTemperature(AMBIANT, dTemperature);
+        if(dTemperature > 256)  // that's way to hot ! .. aka the sensor is not present
+            dx->setText("A_Temp", "N/A");
+        else {
+            snprintf(szTmp, 256, "%3.2f ºC", dTemperature);
+            dx->setText("A_Temp", szTmp);
+        }
+        m_EFAController.getTemperature(SECONDARY, dTemperature);
+        if(dTemperature > 256)  // that's way to hot ! .. aka the sensor is not present
+            dx->setText("S_Temp", "N/A");
+        else {
+            snprintf(szTmp, 256, "%3.2f ºC", dTemperature);
+            dx->setText("S_Temp", szTmp);
+        }
     }
     else {
         // disable all controls
         dx->setEnabled("newPos", false);
         dx->setPropertyInt("newPos", "value", 0);
-        dx->setEnabled("posLimit", false);
         dx->setPropertyInt("posLimit", "value", 0);
         dx->setEnabled("pushButton", false);
         dx->setEnabled("pushButton_2", false);
@@ -275,10 +315,14 @@ int	X2Focuser::execModalSettingsDialog(void)
         dx->setEnabled("radioButtonAppNeg", false);
         dx->setEnabled("isFanOn", false);
         dx->setEnabled("isStopDetect", false);
-        dx->setEnabled("isCalibrated", false);
+        dx->setEnabled("tempSource", false);
+        dx->setText("P_Temp", "N/A");
+        dx->setText("A_Temp", "N/A");
+        dx->setText("S_Temp", "N/A");
     }
 
     //Display the user interface
+    m_bCalibrating = false;
     mUiEnabled = true;
     if ((nErr = ui->exec(bPressedOK)))
         return nErr;
@@ -286,11 +330,10 @@ int	X2Focuser::execModalSettingsDialog(void)
 
     //Retreive values from the user interface
     if (bPressedOK) {
+        nTempSource = dx->currentIndex("tempSource");
+        m_EFAController.setDefaultTempSource(nTempSource);
+        nErr |= m_pIniUtil->writeInt(PARENT_KEY, TEMP_SOURCE, nTempSource);
         nErr = SB_OK;
-        // get limit option
-        dx->propertyInt("posLimit", "value", nPosLimit);
-        printf("Setting pos limit to %d\n", nPosLimit);
-        m_EFAController.setPosLimit(nPosLimit);
     }
     return nErr;
 }
@@ -300,7 +343,13 @@ void X2Focuser::uiEvent(X2GUIExchangeInterface* uiex, const char* pszEvent)
     int nErr = SB_OK;
     int nTmpVal;
     char szErrorMessage[LOG_BUFFER_SIZE];
-
+    bool bMoving;
+    int nPosLimitMin;
+    int nPosLimitMax;
+    double dTemperature;
+    
+    char szTmp[256];
+    
     // new position
     if (!strcmp(pszEvent, "on_pushButton_clicked")) {
         uiex->propertyInt("newPos", "value", nTmpVal);
@@ -314,49 +363,113 @@ void X2Focuser::uiEvent(X2GUIExchangeInterface* uiex, const char* pszEvent)
 
     // new limit
     if (!strcmp(pszEvent, "on_pushButton_2_clicked")) {
-        uiex->propertyInt("posLimit", "value", nTmpVal);
-        nErr = m_EFAController.setPosLimit(nTmpVal);
-        if(nErr) {
-            snprintf(szErrorMessage, LOG_BUFFER_SIZE, "Error setting new limit : Error %d", nErr);
-            uiex->messageBox("Set New Limit", szErrorMessage);
-            return;
+        if(m_bCalibrating) { // abort
+            m_bCalibrating = false;
+            m_EFAController.trackNegativeMotorRate(0);
+            m_EFAController.trackPositiveMotorRate(0);
+            uiex->setText("pushButton_2", "Calibrate limits");
+            m_EFAController.setCalibrationState(false);
+            m_bCalibrated = false;
+            uiex->setText("isCalibrated", "<html><head/><body><p><span style=\" color:#ff0000;\">Not calibrated</span></p></body></html>");
+        }
+        else {
+            // start calibration
+            m_EFAController.setPosLimitMin(0);
+            m_EFAController.setPosLimitMax(3900000);
+            m_EFAController.getPosition(m_nPosition);
+            m_nPrevPostion = m_nPosition;
+            m_bCalibrating = true;
+            m_EFAController.trackNegativeMotorRate(m_EFAController.ticksPerSecondToTrackRate(50000));
+            m_nCalibrationDirection = MOVING_IN;
+            uiex->setText("pushButton_2", "Abort Calibration");
+            mCalibrationTimer.Reset();
         }
     }
 
     if (!strcmp(pszEvent, "on_timer")) {
-        if(uiex->isChecked("isFanOn")) {
-            if(!m_bFanOn){ // only change state if needed
-                m_EFAController.setFan(true);
-                m_bFanOn = true;
+        if(m_bCalibrating) {
+            m_EFAController.getPosition(m_nPosition);
+            bMoving = (m_nPrevPostion != m_nPosition);
+            m_nPrevPostion = m_nPosition;
+            mCalibrationTimer.Reset();
+            if(!bMoving && m_nCalibrationDirection == MOVING_IN) {
+                m_EFAController.trackNegativeMotorRate(0);
+                m_EFAController.setPosLimitMin(0);
+                m_EFAController.syncMotorPosition(0);
+                m_EFAController.trackPositiveMotorRate(m_EFAController.ticksPerSecondToTrackRate(50000));
+                m_nCalibrationDirection = MOVING_OUT;
             }
-        } else {
-            if(m_bFanOn){ // only change state if needed
-                m_EFAController.setFan(false);
-                m_bFanOn = false;
-            }
-        }
-
-        if(uiex->isChecked("isStopDetect")) {
-            if(!m_bStopDetect){ // only change state if needed
-                m_EFAController.setStopDetect(true);
-                m_bStopDetect = true;
-            }
-        } else {
-            if(m_bStopDetect){ // only change state if needed
-                m_EFAController.setStopDetect(false);
-                m_bStopDetect = false;
-            }
-        }
-
-        if(uiex->isChecked("isCalibrated")) {
-            if(!m_bCalibrated){ // only change state if needed
+            else if(!bMoving && m_nCalibrationDirection == MOVING_OUT) {
+                m_EFAController.trackPositiveMotorRate(0);
+                m_EFAController.setPosLimitMax(m_nPosition);
+                snprintf(szTmp, 256, "%d", m_nPosition);
+                uiex->setText("maxPos", szTmp);
+                m_bCalibrating = false;
                 m_EFAController.setCalibrationState(true);
                 m_bCalibrated = true;
+                uiex->setText("isCalibrated", "<html><head/><body><p><span style=\" color:#00ff00;\">Calibrated</span></p></body></html>");
+                uiex->setText("pushButton_2", "Calibrate limits");
+                // make sure the values are not insane
+                m_EFAController.getPosLimitMin(nPosLimitMin);
+                m_EFAController.getPosLimitMax(nPosLimitMax);
+                if(nPosLimitMin == nPosLimitMax) {
+                    m_EFAController.setPosLimitMin(0);
+                    m_EFAController.syncMotorPosition(0);
+                    m_EFAController.setPosLimitMax(3900000);
+                }
+                if(nPosLimitMax > 3900000)  {
+                    m_EFAController.setPosLimitMax(3900000);
+                    uiex->setText("maxPos", "3900000");
+                }
             }
-        } else {
-            if(m_bCalibrated){ // only change state if needed
-                m_EFAController.setCalibrationState(false);
-                m_bCalibrated = false;
+            
+        }
+        
+        if(m_bLinked) {
+            m_EFAController.getTemperature(PRIMARY, dTemperature);
+            if(dTemperature > 256)  // that's way to hot ! .. aka the sensor is not present
+                uiex->setText("P_Temp", "N/A");
+            else {
+                snprintf(szTmp, 256, "%3.2f ºC", dTemperature);
+                uiex->setText("P_Temp", szTmp);
+            }
+            m_EFAController.getTemperature(AMBIANT, dTemperature);
+            if(dTemperature > 256)  // that's way to hot ! .. aka the sensor is not present
+                uiex->setText("A_Temp", "N/A");
+            else {
+                snprintf(szTmp, 256, "%3.2f ºC", dTemperature);
+                uiex->setText("A_Temp", szTmp);
+            }
+            m_EFAController.getTemperature(SECONDARY, dTemperature);
+            if(dTemperature > 256)  // that's way to hot ! .. aka the sensor is not present
+                uiex->setText("S_Temp", "N/A");
+            else {
+                snprintf(szTmp, 256, "%3.2f ºC", dTemperature);
+                uiex->setText("S_Temp", szTmp);
+            }
+
+            if(uiex->isChecked("isFanOn")) {
+                if(!m_bFanOn){ // only change state if needed
+                    m_EFAController.setFan(true);
+                    m_bFanOn = true;
+                }
+            } else {
+                if(m_bFanOn){ // only change state if needed
+                    m_EFAController.setFan(false);
+                    m_bFanOn = false;
+                }
+            }
+
+            if(uiex->isChecked("isStopDetect")) {
+                if(!m_bStopDetect){ // only change state if needed
+                    m_EFAController.setStopDetect(true);
+                    m_bStopDetect = true;
+                }
+            } else {
+                if(m_bStopDetect){ // only change state if needed
+                    m_EFAController.setStopDetect(false);
+                    m_bStopDetect = false;
+                }
             }
         }
     }
@@ -379,17 +492,26 @@ int	X2Focuser::focPosition(int& nPosition)
 
 int	X2Focuser::focMinimumLimit(int& nMinLimit) 		
 {
-	nMinLimit = 0;
-    return SB_OK;
+    int nErr = SB_OK;
+
+    if(!m_bLinked)
+        return NOT_CONNECTED;
+
+    X2MutexLocker ml(GetMutex());
+    nErr = m_EFAController.getPosLimitMin(nMinLimit);
+    return nErr;
+
 }
 
-int	X2Focuser::focMaximumLimit(int& nPosLimit)			
+int	X2Focuser::focMaximumLimit(int& nMaxLimit)
 {
     int nErr = SB_OK;
-	X2MutexLocker ml(GetMutex());
-    m_EFAController.getPosLimit(nPosLimit);
 
-    nErr = m_EFAController.getPosLimit(nPosLimit);
+    if(!m_bLinked)
+        return NOT_CONNECTED;
+
+	X2MutexLocker ml(GetMutex());
+    nErr = m_EFAController.getPosLimitMax(nMaxLimit);
 
     return nErr;
 }
