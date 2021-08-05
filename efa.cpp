@@ -146,19 +146,20 @@ int CEFAController::gotoPosition(int nPos)
     int nErr = PLUGIN_OK;
     unsigned char szCmd[SERIAL_BUFFER_SIZE];
     unsigned char szResp[SERIAL_BUFFER_SIZE];
+    int nGotoPos;
 
     if(!m_bIsConnected)
         return ERR_COMMNOLINK;
-
+    nGotoPos = nPos*100;
     memset(szCmd,0, SERIAL_BUFFER_SIZE);
     szCmd[0] = SOM;
     szCmd[NUM] = 6;
     szCmd[SRC] = PC;
     szCmd[RCV] = FOC_TEMP;
     szCmd[CMD] = MTR_GOTO_POS2;
-    szCmd[5] = (nPos & 0x00FF0000)>>16;
-    szCmd[6] = (nPos & 0x0000FF00)>>8;
-    szCmd[7] = (nPos & 0x000000FF);
+    szCmd[5] = (nGotoPos & 0x00FF0000)>>16;
+    szCmd[6] = (nGotoPos & 0x0000FF00)>>8;
+    szCmd[7] = (nGotoPos & 0x000000FF);
     szCmd[8] = checksum(szCmd+1, szCmd[NUM]+1);
 
 #if defined PLUGIN_DEBUG && PLUGIN_DEBUG >= 2
@@ -232,6 +233,8 @@ int CEFAController::isGoToComplete(bool &bComplete)
         timestamp[strlen(timestamp) - 1] = 0;
         fprintf(Logfile, "[%s] [CEFAController::isGoToComplete] ERROR checking if motor is moving : %d\n", timestamp, nErr);
 #endif
+        // ignore error for now.
+        nErr = PLUGIN_OK;
         return nErr;
     }
 #if defined PLUGIN_DEBUG && PLUGIN_DEBUG >= 2
@@ -269,7 +272,6 @@ int CEFAController::isMotorMoving(bool &bMoving)
 
     bMoving = false;
     memset(szCmd,0, SERIAL_BUFFER_SIZE);
-    // Goto Position = 0x140000 = 1310720
     szCmd[0] = SOM;
     szCmd[NUM] = 3;
     szCmd[SRC] = PC;
@@ -453,6 +455,8 @@ int CEFAController::getPosition(int &nPosition)
     }
     // convert response
     nPosition = (szResp[5]<<16) + (szResp[6]<<8) + szResp[7];
+    nPosition = int(nPosition/100);
+    m_nCurPos = nPosition;
 #if defined PLUGIN_DEBUG && PLUGIN_DEBUG >= 2
     ltime = time(NULL);
     timestamp = asctime(localtime(&ltime));
@@ -461,8 +465,6 @@ int CEFAController::getPosition(int &nPosition)
     fprintf(Logfile, "[%s] [CEFAController::getPosition] nErr = %d\n", timestamp, nErr);
     fflush(Logfile);
 #endif
-
-    m_nCurPos = nPosition;
     return nErr;
 }
 
@@ -472,19 +474,21 @@ int CEFAController::syncMotorPosition(int nPos)
     int nErr = PLUGIN_OK;
     unsigned char szCmd[SERIAL_BUFFER_SIZE];
     unsigned char szResp[SERIAL_BUFFER_SIZE];
+    int nNewPos;
 
     if(!m_bIsConnected)
         return ERR_COMMNOLINK;
 
+    nNewPos = nPos *100;
     memset(szCmd,0, SERIAL_BUFFER_SIZE);
     szCmd[0] = SOM;
     szCmd[NUM] = 6;
     szCmd[SRC] = PC;
     szCmd[RCV] = FOC_TEMP;
     szCmd[CMD] = MTR_OFFSET_CNT;
-    szCmd[5] = (nPos & 0x00FF0000)>>16;
-    szCmd[6] = (nPos & 0x0000FF00)>>8;
-    szCmd[7] = (nPos & 0x000000FF);
+    szCmd[5] = (nNewPos & 0x00FF0000)>>16;
+    szCmd[6] = (nNewPos & 0x0000FF00)>>8;
+    szCmd[7] = (nNewPos & 0x000000FF);
     szCmd[8] = checksum(szCmd+1, szCmd[NUM]+1);
 
 #if defined PLUGIN_DEBUG && PLUGIN_DEBUG >= 2
@@ -544,6 +548,8 @@ int CEFAController::getPosLimitMin(int &nPosLimit)
     }
     // convert response
     m_nPosLimitMin = (szResp[5]<<16) + (szResp[6]<<8) + szResp[7];
+    m_nPosLimitMin = m_nPosLimitMin/100;
+    nPosLimit = m_nPosLimitMin;
 #if defined PLUGIN_DEBUG && PLUGIN_DEBUG >= 2
     ltime = time(NULL);
     timestamp = asctime(localtime(&ltime));
@@ -552,7 +558,6 @@ int CEFAController::getPosLimitMin(int &nPosLimit)
     fprintf(Logfile, "[%s] [CEFAController::getPosLimitMin] nErr = %d\n", timestamp, nErr);
     fflush(Logfile);
 #endif
-    nPosLimit = m_nPosLimitMin;
     return nErr;
 }
 
@@ -585,6 +590,8 @@ int CEFAController::getPosLimitMax(int &nPosLimit)
     }
     // convert response
     m_nPosLimitMax = (szResp[5]<<16) + (szResp[6]<<8) + szResp[7];
+    m_nPosLimitMax = m_nPosLimitMax / 100;
+    nPosLimit = m_nPosLimitMax;
 #if defined PLUGIN_DEBUG && PLUGIN_DEBUG >= 2
     ltime = time(NULL);
     timestamp = asctime(localtime(&ltime));
@@ -593,7 +600,6 @@ int CEFAController::getPosLimitMax(int &nPosLimit)
     fprintf(Logfile, "[%s] [CEFAController::getPosLimitMax] nErr = %d\n", timestamp, nErr);
     fflush(Logfile);
 #endif
-    nPosLimit = m_nPosLimitMax;
     return nErr;
 }
 

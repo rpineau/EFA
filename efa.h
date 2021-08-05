@@ -34,7 +34,7 @@
 #include "../../licensedinterfaces/sleeperinterface.h"
 
 // #define PLUGIN_DEBUG 2
-#define DRIVER_VERSION      1.0
+#define DRIVER_VERSION      1.1
 
 
 #define SERIAL_BUFFER_SIZE 256
