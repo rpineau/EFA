@@ -572,14 +572,14 @@ int	X2Focuser::amountNameFromIndexFocGoto(const int& nZeroBasedIndex, BasicStrin
 	switch (nZeroBasedIndex)
 	{
 		default:
-		case 0: strDisplayName="100 steps"; nAmount=100;break;
-		case 1: strDisplayName="500 steps"; nAmount=500;break;
-		case 2: strDisplayName="1000 steps"; nAmount=1000;break;
-        case 3: strDisplayName="5000 steps"; nAmount=5000;break;
-        case 4: strDisplayName="10000 steps"; nAmount=10000;break;
-        case 5: strDisplayName="50000 steps"; nAmount=50000;break;
-        case 6: strDisplayName="100000 steps"; nAmount=100000;break;
-        case 7: strDisplayName="500000 steps"; nAmount=500000;break;
+		case 0: strDisplayName="10 steps"; nAmount=10;break;
+		case 1: strDisplayName="100 steps"; nAmount=100;break;
+		case 2: strDisplayName="500 steps"; nAmount=500;break;
+        case 3: strDisplayName="1000 steps"; nAmount=1000;break;
+        case 4: strDisplayName="2500 steps"; nAmount=2500;break;
+        case 5: strDisplayName="5000 steps"; nAmount=5000;break;
+        case 6: strDisplayName="7500 steps"; nAmount=7500;break;
+        case 7: strDisplayName="10000 steps"; nAmount=10000;break;
 	}
 	return SB_OK;
 }

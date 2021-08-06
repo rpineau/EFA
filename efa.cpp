@@ -451,6 +451,8 @@ int CEFAController::getPosition(int &nPosition)
         timestamp[strlen(timestamp) - 1] = 0;
         fprintf(Logfile, "[%s] [CEFAController::getPosition] ERROR nErr = %d\n", timestamp, nErr);
 #endif
+        nPosition = m_nCurPos;
+        nErr = PLUGIN_OK;
         return nErr;
     }
     // convert response
@@ -1144,13 +1146,13 @@ int CEFAController::takeEFABus()
     int nTimeout = 0;
     bool bCTS;
 
-    #if defined PLUGIN_DEBUG && PLUGIN_DEBUG >= 3
-            ltime = time(NULL);
-            timestamp = asctime(localtime(&ltime));
-            timestamp[strlen(timestamp) - 1] = 0;
-            fprintf(Logfile, "[%s] [CEFAController::takeEFABus] taking the bus\n", timestamp);
-            fflush(Logfile);
-    #endif
+#if defined PLUGIN_DEBUG && PLUGIN_DEBUG >= 3
+    ltime = time(NULL);
+    timestamp = asctime(localtime(&ltime));
+    timestamp[strlen(timestamp) - 1] = 0;
+    fprintf(Logfile, "[%s] [CEFAController::takeEFABus] taking the bus\n", timestamp);
+    fflush(Logfile);
+#endif
 
     // wait for CTS to be clear
     while(true) {
@@ -1164,18 +1166,26 @@ int CEFAController::takeEFABus()
 #endif
         if(!bCTS) // aka if CTS is false we can take the bus
             break;
+
         nTimeout++;
-        if(nTimeout>100) {
+        if(nTimeout>500) {
+#if defined PLUGIN_DEBUG && PLUGIN_DEBUG >= 3
+            ltime = time(NULL);
+            timestamp = asctime(localtime(&ltime));
+            timestamp[strlen(timestamp) - 1] = 0;
+            fprintf(Logfile, "[%s] [CEFAController::takeEFABus] Timeout waiting for bCTS  = %s\n", timestamp, bCTS?"True":"False");
+            fflush(Logfile);
+#endif
             return ERR_CMDFAILED;
         }
         m_pSleeper->sleep(100);
     }
 #if defined PLUGIN_DEBUG && PLUGIN_DEBUG >= 3
-        ltime = time(NULL);
-        timestamp = asctime(localtime(&ltime));
-        timestamp[strlen(timestamp) - 1] = 0;
-        fprintf(Logfile, "[%s] [CEFAController::takeEFABus] bCTS  = %s\n", timestamp, bCTS?"True":"False");
-        fflush(Logfile);
+    ltime = time(NULL);
+    timestamp = asctime(localtime(&ltime));
+    timestamp[strlen(timestamp) - 1] = 0;
+    fprintf(Logfile, "[%s] [CEFAController::takeEFABus] bCTS  = %s\n", timestamp, bCTS?"True":"False");
+    fflush(Logfile);
 #endif
 
     // set RTS to true -> we're taking the bus
@@ -1214,6 +1224,7 @@ int CEFAController::EFACommand(const unsigned char *pszCmd, unsigned char *pszRe
 		return ERR_COMMNOLINK;
 
     takeEFABus();
+
     m_pSerx->purgeTxRx();
 #if defined PLUGIN_DEBUG && PLUGIN_DEBUG >= 3
 	ltime = time(NULL);
@@ -1228,7 +1239,15 @@ int CEFAController::EFACommand(const unsigned char *pszCmd, unsigned char *pszRe
     m_pSerx->flushTx();
 
     if(nErr) {
-        // set 0 to false -> we're releasing the bus
+#if defined PLUGIN_DEBUG && PLUGIN_DEBUG >= 3
+        ltime = time(NULL);
+        timestamp = asctime(localtime(&ltime));
+        timestamp[strlen(timestamp) - 1] = 0;
+        hexdump(pszCmd, cHexMessage, pszCmd[NUM]+3, LOG_BUFFER_SIZE);
+        fprintf(Logfile, "[%s] [CEFAController::EFACommand] ERROR sending command.\n", timestamp);
+        fflush(Logfile);
+#endif
+        //  we're releasing the bus
         releaseEFABus();
         return nErr;
     }
